@@ -43,8 +43,8 @@ class SendKeys(threading.Thread):
 
     def send_print_keys(self):
         with self.keyboard.pressed(Key.ctrl):
-            self.keyboard.press('9')
-            self.keyboard.release('9')
+            self.keyboard.press('p')
+            self.keyboard.release('p')
         time.sleep(self.__COMMAND_SLEEP_TIME)
 
     def __send_num_enter(self):
@@ -53,10 +53,20 @@ class SendKeys(threading.Thread):
         input_enter.ReleaseKey(input_enter.ENTER,input_enter.INPUT_KEYBOARD)
         time.sleep(self.__COMMAND_SLEEP_TIME)
 
+    def __send_f12_enter(self):
+        self.keyboard.press(Key.f12)
+        self.keyboard.release(Key.f12)
+
     def run(self):
         self.__send_escape_keys()
         self.__send_string_to_window()
         self.__send_num_enter()
+        time.sleep(self.__COMMAND_SLEEP_TIME)
+
+    def run_f12(self):
+        self.__send_escape_keys()
+        self.__send_string_to_window()
+        self.__send_f12_enter()
         time.sleep(self.__COMMAND_SLEEP_TIME)
 
 if __name__ == "__main__":
