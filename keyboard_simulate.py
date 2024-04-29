@@ -4,7 +4,7 @@ from pynput.mouse import Controller as mouse_controller
 from pynput.keyboard import Controller as key_controller
 from pynput.keyboard import Key
 import input_enter
-
+import time
 class ClickListener(threading.Thread):
     def __init__(self):
         super().__init__()
@@ -20,37 +20,52 @@ class ClickListener(threading.Thread):
         with Listener(on_click=self.on_click) as listener:
             listener.join()
 
-class SendKeys():
-    keyboard=key_controller()
-    mouse=mouse_controller()
+class SendKeys(threading.Thread):
+    __COMMAND_SLEEP_TIME=0.75
+    def __init__(self,command,position=None):
+        super().__init__()
+        self.keyboard = key_controller()
+        self.mouse = mouse_controller()
+        self.command=command
+        self.position=position
 
-    def send_string_to_window(self,string, position=None):
+    def __send_string_to_window(self):
         """
         Send a string to the window at the specified position.
         """
-        if position:
+        if self.position:
             self.mouse.press(Button.left)
-        self.keyboard.type(string)
+        self.keyboard.type(self.command)
+
+    def __send_escape_keys(self):
+        self.keyboard.press(Key.esc)
+        self.keyboard.release(Key.esc)
 
     def send_print_keys(self):
-        with self.keyboard.pressed(Key.shift):
+        with self.keyboard.pressed(Key.ctrl):
             self.keyboard.press('9')
             self.keyboard.release('9')
-        print('ctrl+9')
+        time.sleep(self.__COMMAND_SLEEP_TIME)
 
-    def send_num_enter(self):
+    def __send_num_enter(self):
         input_enter.PressKey(input_enter.ENTER,input_enter.INPUT_KEYBOARD,input_enter.KEYEVENTF_EXTENDEDKEY)
+        time.sleep(0.1)
         input_enter.ReleaseKey(input_enter.ENTER,input_enter.INPUT_KEYBOARD)
+        time.sleep(self.__COMMAND_SLEEP_TIME)
+
+    def run(self):
+        self.__send_escape_keys()
+        self.__send_string_to_window()
+        self.__send_num_enter()
+        time.sleep(self.__COMMAND_SLEEP_TIME)
 
 if __name__ == "__main__":
-    # Start your application here
-    
     # Start a separate thread to wait for left click event
     click_listener = ClickListener()
-
-    # If a click was detected, send 'PN1' to the window at the clicked position
-    print(f"Left click detected at position: {click_listener.click_position}")
-    op=SendKeys()
-    op.send_string_to_window('hello world')
-    op.send_print_keys()
-    op.send_num_enter()
+    #print(f"Left click detected at position: {click_listener.click_position}")
+    for i in range(1,5):
+        command_thread=SendKeys('PN1')
+        command_thread.start()
+        command_thread.join()
+        command_thread.send_print_keys()
+        

@@ -7,6 +7,8 @@ from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt
 from handle_pd import pd_properties
 import functions
+import keyboard_simulate
+import time
 
 class MainWindow(QMainWindow):
     __BUTTON_WIDTH=100
@@ -32,8 +34,6 @@ class MainWindow(QMainWindow):
         self.dup_name_check=QCheckBox('Dup Names')
         self.dup_seats_check=QCheckBox('Dup Seats')
         self.default_radio = QRadioButton("Default")
-        self.pick_window = QPushButton('Poke eTerm')
-        self.pick_window.setFixedWidth(self.__BUTTON_WIDTH)
         self.pd_radio.setChecked(True)
         self.dup_name_check.setChecked(True)
         self.pn_times_label = QLabel('Times of \"PN1\"')
@@ -62,13 +62,18 @@ class MainWindow(QMainWindow):
         self.run_button.setFixedWidth(self.__BUTTON_WIDTH)  # Set width to 100 pixels
         self.run_button.clicked.connect(lambda: self.run_logic(args))
         
+        # Create 'Pick' button.
+        self.pick_button = QPushButton('Poke eTerm')
+        self.pick_button.setFixedWidth(self.__BUTTON_WIDTH)
+        self.pick_button.clicked.connect(lambda:self.pick_logic())
+
         # Create a QHBoxLayout for the rows
         first_row_layout = QHBoxLayout()
         first_row_layout.addWidget(self.radio_label)
         second_row_layout = QHBoxLayout()
         second_row_layout.addWidget(self.pd_radio)
         second_row_layout.addWidget(self.default_radio)
-        second_row_layout.addWidget(self.pick_window)
+        second_row_layout.addWidget(self.pick_button)
         third_row_layout = QHBoxLayout()
         third_row_layout.addWidget(self.dup_name_check)
         third_row_layout.addWidget(self.dup_seats_check)
@@ -124,6 +129,24 @@ class MainWindow(QMainWindow):
                 for line in pd.SeatMessage:
                     self.result_text_edit.append(line)
 
+    def pick_logic(self):
+        keyboard_simulate.ClickListener()
+        try:
+            times=int(self.pn_times_edit.text())+1
+        except ValueError:
+            return
+        if self.pd_radio.isChecked:
+            PD_thread=keyboard_simulate.SendKeys('PD*')
+            PD_thread.start()
+            PD_thread.join()
+            PD_thread.send_print_keys()
+            for i in range(1,times):
+                PN1_thread=keyboard_simulate.SendKeys('PN1')
+                PN1_thread.start()
+                PN1_thread.join()
+                PN1_thread.send_print_keys()
+            
+        
 def main():
     parser = argparse.ArgumentParser(description="PD start")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
