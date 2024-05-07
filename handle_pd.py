@@ -82,7 +82,7 @@ class pd_properties():
                 continue
             sn,seat='',''
             for other in self.__Pd_item_list:
-                if item['seat'] == other['seat'] and item['sn'] != other['sn']:
+                if item['seat'] == other['seat'] and item['name'] != other['name']:
                     sn=item['sn']
                     seat=item['seat']
                     self.SeatMessage.append('PR'+sn+'PD seat assigned '+seat)

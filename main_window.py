@@ -3,21 +3,25 @@ import argparse
 from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog
 from PySide6.QtWidgets import QLineEdit, QVBoxLayout, QWidget, QTextEdit
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QRadioButton, QCheckBox
+from PySide6.QtWidgets import QFrame
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt
 from handle_pd import pd_properties
 import functions
 import keyboard_simulate
-import time
+import threading
+import json
 
 class MainWindow(QMainWindow):
     __BUTTON_WIDTH=100
 
     def __init__(self, args):
         super().__init__()
+        with open(r"resources\main_window.json", "r") as file:
+            config = json.load(file)
         self.setWindowTitle("PD Start 0.1")
-        self.resize(600, 400)  # Set initial window size to 600x400 pixels
-        self.setMinimumSize(200, 200)  # Set minimum window size to 200x200 pixels
+        self.resize(config['main_window_width'], config['main_window_height'])  # Set initial window size to 600x400 pixels
+        self.setMinimumSize(config['main_window_min_width'], config['main_window_min_height'])  # Set minimum window size to 200x200 pixels
         
         # Set window icon
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -30,17 +34,26 @@ class MainWindow(QMainWindow):
 
         # Create a label and some radio buttons.
         self.radio_label = QLabel("Select a following function:")
-        self.pd_radio = QRadioButton("PD*")
+        self.pd_radio = QRadioButton("PD")
+        self.pd_text=QLineEdit("*")
+        self.pd_text.setStyleSheet("border: none;")
+        self.pending_time_text=QLineEdit(str(config['pending_time_value']))
+        self.pending_time_text.setFixedWidth(config['QLineEdit_short_width'])
+        self.pending_time_text.setStyleSheet("QLineEdit { background-color: #CCCCCC; color: #444444; border:none;}")
         self.dup_name_check=QCheckBox('Dup Names')
         self.dup_seats_check=QCheckBox('Dup Seats')
         self.default_radio = QRadioButton("Default")
+        self.flight_inout=QLineEdit("983/984")
+        self.flight_inout.setFixedWidth(config['QLineEdit_short_width'])
+        self.flight_inout.setStyleSheet("border: none;")
         self.pd_radio.setChecked(True)
         self.dup_name_check.setChecked(True)
-        self.pn_times_label = QLabel('Times of \"PN1\"')
-        self.pn_times_label.setFixedWidth(100)
+        self.pn_times_label = QLabel('Times of \'>PN1⏎\'')
+        #self.pn_times_label.setFixedWidth(100)
         self.pn_times_edit = QLineEdit()
-        self.pn_times_edit.setText('20')
-        self.pn_times_edit.setFixedWidth(50)
+        self.pn_times_edit.setText(str(config['pn_times_value']))
+        self.pn_times_edit.setFixedWidth(config['QLineEdit_short_width'])
+        self.pn_times_edit.setStyleSheet("border: none;")
         
         # Create button and QLineEdit for file path
         self.file_button = QPushButton("Open...")
@@ -48,6 +61,7 @@ class MainWindow(QMainWindow):
 
         self.file_path_edit = QLineEdit()
         self.file_path_edit.setReadOnly(True)
+        self.file_path_edit.setStyleSheet("border: none;")
         
         # Create QTextEdit for result output
         self.result_text_edit = QTextEdit()
@@ -70,31 +84,49 @@ class MainWindow(QMainWindow):
         # Create a QHBoxLayout for the rows
         first_row_layout = QHBoxLayout()
         first_row_layout.addWidget(self.radio_label)
+        
         second_row_layout = QHBoxLayout()
         second_row_layout.addWidget(self.pd_radio)
-        second_row_layout.addWidget(self.default_radio)
-        second_row_layout.addWidget(self.pick_button)
-        third_row_layout = QHBoxLayout()
-        third_row_layout.addWidget(self.dup_name_check)
-        third_row_layout.addWidget(self.dup_seats_check)
-        third_row_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        forth_row_layout = QHBoxLayout()  
-        forth_row_layout.addWidget(self.pn_times_label)
-        forth_row_layout.addWidget(self.pn_times_edit)
-        forth_row_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        fifth_row_layout = QHBoxLayout()
-        fifth_row_layout.addWidget(self.file_button)
-        fifth_row_layout.addWidget(self.file_path_edit)
+        second_row_layout.addWidget(self.pd_text)
+        second_row_layout.addWidget(self.pn_times_label)
+        second_row_layout.addWidget(self.pn_times_edit)
+        
+        third_row_layout = QHBoxLayout()      
+        third_row_left=QHBoxLayout()
+        third_row_left.addWidget(self.default_radio)
+        third_row_left.addWidget(self.flight_inout)
+        third_row_left.addStretch()# Add stretch to push widgets to the left
+        third_row_left.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        third_row_layout.addLayout(third_row_left)
+
+        third_row_right=QHBoxLayout()
+        third_row_right.addWidget(self.pending_time_text)
+        third_row_right.addWidget(self.pick_button)
+        third_row_right.setAlignment(Qt.AlignmentFlag.AlignRight)
+        third_row_layout.addLayout(third_row_right)
+
+        forth_row_layout = QHBoxLayout()
+        forth_row_layout.addWidget(self.file_button)
+        forth_row_layout.addWidget(self.file_path_edit)
+
+        fifth_row_layout=QHBoxLayout()
+        fifth_row_layout.addWidget(self.dup_name_check)
+        fifth_row_layout.addWidget(self.dup_seats_check)
+        fifth_row_layout.addWidget(self.run_button)
+        fifth_row_layout.addStretch()
 
         # Create a QVBoxLayout for the main layout
         main_layout = QVBoxLayout()
         main_layout.addLayout(first_row_layout)
         main_layout.addLayout(second_row_layout)
         main_layout.addLayout(third_row_layout)
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        main_layout.addWidget(separator)
         main_layout.addLayout(forth_row_layout)
         main_layout.addLayout(fifth_row_layout)
         main_layout.addWidget(self.result_text_edit)
-        main_layout.addWidget(self.run_button)
         
         # Create a central widget to hold the main layout
         central_widget = QWidget()
@@ -130,21 +162,36 @@ class MainWindow(QMainWindow):
                     self.result_text_edit.append(line)
 
     def pick_logic(self):
-        keyboard_simulate.ClickListener()
+        command_pending=float(self.pending_time_text.text())
         try:
             times=int(self.pn_times_edit.text())+1
         except ValueError:
             return
         if self.pd_radio.isChecked:
-            PD_thread=keyboard_simulate.SendKeys('PD*')
+            event1=threading.Event()
+            event2=threading.Event()
+            listener_start=keyboard_simulate.ClickListener(event1)
+            listener_start.start()
+            # Wait for the first click event
+            event1.wait()
+            command_string=('PD'+self.pd_text.text())
+            PD_thread=keyboard_simulate.SendKeys(command_string,command_pending)
             PD_thread.start()
             PD_thread.join()
-            PD_thread.send_print_keys()
+            #PD_thread.send_print_keys()
+            listener_loop = keyboard_simulate.ClickListener(event2)
+            listener_loop.start()
             for i in range(1,times):
-                PN1_thread=keyboard_simulate.SendKeys('PN1')
-                PN1_thread.start()
-                PN1_thread.join()
-                PN1_thread.send_print_keys()
+                if listener_loop.click_position == None:
+                    PN1_thread=keyboard_simulate.SendKeys('PN1',command_pending)
+                    PN1_thread.start()
+                    PN1_thread.join()
+                    #PN1_thread.send_print_keys()
+                else:
+                    event2.wait()
+                    listener_loop.join()
+                    listener_loop.event.clear()
+                    break
             
         
 def main():
