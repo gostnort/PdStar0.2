@@ -1,7 +1,5 @@
 # PD command and analysis
 
-**Duplicate seats and names are completed. 'Poke eTerm', 'Default' and 'Times of PN1' do not start yet.**
-
 ## Install/Update
 
 Download this project, and extract to a new folder.
@@ -32,9 +30,7 @@ pip install -r requirements.txt
 
 ### The Upper Portion
 
-There are 2 main functions.
-
-#### PD
+#### Option of PD
 
 1. Output the command of 'PD'. The default value is just an asterisk'*'. You can add options like:
     ```
@@ -43,11 +39,11 @@ There are 2 main functions.
     ```
 0. Output how many times of 'PN1' after the 'PD' command.
 
-#### Default commands set
+#### Option of Default
 
 (Not completed yet)
 
-#### 'Poke'
+#### The Button of 'Poke'
 
 The gray text box is the command pending time in each output. The unit is Second. Commands must wait more than '0.5' second according to the average mensuring. If the network latancy is higher than 500ms, it can up to '0.7', or other number you prefer to.
 
