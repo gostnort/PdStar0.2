@@ -3,12 +3,12 @@ import argparse
 from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog
 from PySide6.QtWidgets import QLineEdit, QVBoxLayout, QWidget, QTextEdit
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QRadioButton, QCheckBox
-from PySide6.QtWidgets import QFrame
+from PySide6.QtWidgets import QFrame, QMessageBox
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt
-from handle_pd import pd_properties
-import functions
-import keyboard_simulate
+from bins.handle_pd import pd_properties
+import bins.functions as functions
+import bins.keyboard_simulate as keyboard_simulate
 import threading
 import json
 
@@ -17,9 +17,21 @@ class MainWindow(QMainWindow):
 
     def __init__(self, args):
         super().__init__()
-        with open(r"resources\main_window.json", "r") as file:
+        venv_path=os.path.dirname(os.getcwd())
+        '''
+        if(r'.venv' not in venv_path):
+            print(venv_path)
+            print('Run this project in virtual environment folder \'.venv\'')
+            QMessageBox.warning(self,'Warning', 
+                                venv_path + "\nThis project msut run in the virtual environment that named the folder \'.venv\' \nStart the python.exe in \'Scripts\' folder calling of this main_window.")
+            return
+            '''
+        root_path=os.getcwd()
+        resource_path = root_path + r'\resources'
+
+        with open(resource_path + r"\main_window.json", "r") as file:
             config = json.load(file)
-        self.setWindowTitle("PD Start 0.1")
+        self.setWindowTitle(config['window_title'])
         self.resize(config['main_window_width'], config['main_window_height'])  # Set initial window size to 600x400 pixels
         self.setMinimumSize(config['main_window_min_width'], config['main_window_min_height'])  # Set minimum window size to 200x200 pixels
         
@@ -43,7 +55,7 @@ class MainWindow(QMainWindow):
         self.dup_name_check=QCheckBox('Dup Names')
         self.dup_seats_check=QCheckBox('Dup Seats')
         self.default_radio = QRadioButton("Default")
-        self.flight_inout=QLineEdit("983/984")
+        self.flight_inout=QLineEdit("984")
         self.flight_inout.setFixedWidth(config['QLineEdit_short_width'])
         self.flight_inout.setStyleSheet("border: none;")
         self.pd_radio.setChecked(True)
