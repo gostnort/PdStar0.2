@@ -3,7 +3,7 @@ from pynput.mouse import Listener
 from pynput.mouse import Controller as mouse_controller
 from pynput.keyboard import Controller as key_controller
 from pynput.keyboard import Key
-import bins.input_enter as input_enter
+import input_enter as input_enter
 import time
 class ClickListener(threading.Thread):
     def __init__(self,event):

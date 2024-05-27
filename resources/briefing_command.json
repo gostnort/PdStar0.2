@@ -2,11 +2,12 @@
     "arrival_section":[
         {
             "sy":"SY ${arrival_flight_number}/${arrival_date}",
-            "se":"SE ${arrival_flight_number}/${arrival_date}/${arrival}"
+            "se":"SE ${arrival_flight_number}/${arrival_date}/*/${arrival}"
         }
     ],
     "departure_section":[
         {
+            "av":"AV ${departure_flight_number}/${departure_date}",
             "ft":"FT ${departure_flight_number}/${departure_date}",
             "sy":"sy",
             "pd_inf":"pd*,inf",
@@ -32,7 +33,7 @@
         {
             "airc":"airc:ca/${ac_reg}",
             "cwd":"cwd:${departure_flight_number}",
-            "jcsy":"jcsy ${departure_flight_number}/${departure_date}/${departure},o"
+            "jcsy":"jcsy ${departure_flight_number}/${departure_date}/LAX,o"
         }
     ]
 }
