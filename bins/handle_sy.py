@@ -1,23 +1,28 @@
 import re
 class SY():
-    def __init__(self,SyContent,BolTransit):
+    def __init__(self,SyContent,Arrival=''):
         super().__init__()
         self.ac_type=''
         self.ac_reg=''
         self.ret_minus_id=''
+        self.checked=''
         self.gate=''
         self.leg=''
         self.bdt=''
+        self.__arrival = Arrival
         self.__sy_content = SyContent
-        self.__bol_transit=BolTransit
         self.__run()
 
     def __run(self):
         last_index = self.__get_ac_type()
         last_index = self.__get_gate(last_index)
         last_index = self.__get_bdt(last_index)
-        last_index = self.__get_leg(last_index)
-        last_index = self.__get_ret_minus_id(last_index)
+        if self.__arrival != '':
+            self.leg= self.__arrival + "LAX"
+            last_index = self.__get_checked(last_index)
+        else:
+            last_index = self.__get_leg(last_index)
+            last_index = self.__get_ret_minus_id(last_index)
 
     def __get_ac_type(self):
         try:
@@ -86,6 +91,16 @@ class SY():
             print("__get_ret_minus_id() has an error.\n",e)
             return 0
         
+    def __get_checked(self,last_index):
+        try:
+            last_index=self.__sy_content.find('*' + self.leg)
+            pattern=re.compile(r'\s{3}C\d+(/\d+)*')
+            match=re.search(pattern,self.__sy_content[last_index:])
+            self.checked=match.group(0)[1:]
+        except ValueError as e:
+            print("__get_checked() has an error.\n",e)
+            return 0
+
 import functions
 def main():
     sy_content=functions.ReadTxt2String(r'C:\Users\gostn\OneDrive\桌面\eterm\sy_direct.txt')

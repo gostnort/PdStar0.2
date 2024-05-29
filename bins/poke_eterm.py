@@ -3,6 +3,7 @@ import threading
 import keyboard_simulate
 import argparse
 from pynput.keyboard import Controller as key_controller
+import handle_sy
 '''
 input:string,string,float,bol
 input example: 'c:\\users','983/984/01JUN/02JUN/PEK',0.7,True
@@ -37,6 +38,7 @@ def briefing_logic(json_folder_path,flight_info,command_pending,debug):
     listener_loop.start()
     if listener_loop.click_position == None:
         send_arrival_commands(commands,command_pending,debug)
+
         send_departure_commands(commands,command_pending,debug)
     else:
         event2.wait()
@@ -84,6 +86,10 @@ def send_departure_commands(commands_in_json,command_pending,debug):
         keyboard.type('\n===END===\n')
         if not debug:
             command_thread.send_print_keys()
+
+def get_arrival_data(file_path):
+    pass
+
 
 def main():
     parser = argparse.ArgumentParser(description="PD start")
