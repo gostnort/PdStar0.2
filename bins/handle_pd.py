@@ -1,6 +1,6 @@
 import re
 
-class pd_properties():
+class PD():
     __Pd_item_list=[]
     __Pd_text=[]
     bol_name=False
@@ -100,7 +100,7 @@ class pd_properties():
 import functions
 def main():
     pdcontent=functions.ReadTxt2List(r'C:\Users\gostn\OneDrive\桌面\eterm\pd_all.txt')
-    pd=pd_properties()
+    pd=PD()
     #pd.run(pdcontent)
     print(pd.GetLastCount(pdcontent))
 if __name__ == "__main__":

@@ -21,3 +21,10 @@ def ReadTxt2List(txt_file_path):
     except FileNotFoundError:
         print(f"Error: File '{txt_file_path}' not found.")
         return []
+    
+def String2List(MultilineString):
+    # Use splitlines() to split the string into a list of lines
+    return MultilineString.splitlines()
+
+def List2String(Lines):
+    return '\n'.join(Lines)

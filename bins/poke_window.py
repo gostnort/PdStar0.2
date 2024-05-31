@@ -5,6 +5,7 @@ import argparse
 from pynput.keyboard import Controller as key_controller
 from handle_sy import SY
 from handle_se import SE
+from handle_pd import PD
 import functions
 '''
 input:string,string,float,bol
@@ -169,8 +170,13 @@ class HandleData():
         
     def __get_departure_data(self):
         for command in self.results:
-            print(command)
-        pass
+            if command.find('DEPARTRUE_END')== -1:
+                if command.find('PD:') != -1:
+                    pd=PD()
+                    list_command = functions.String2List(command)
+                    pd.GetLastCount(list_command)
+            else:
+                break
 
 
 def main():
