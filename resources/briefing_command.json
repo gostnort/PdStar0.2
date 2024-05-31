@@ -36,5 +36,8 @@
             "cwd":"cwd:${departure_flight_number}",
             "jcsy":"jcsy ${departure_flight_number}/${departure_date}/LAX,o"
         }
+    ],
+    "stop_turn_page":[
+        "av","ft"
     ]
 }

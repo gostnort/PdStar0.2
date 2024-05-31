@@ -39,6 +39,12 @@ class SendKeys(threading.Thread):
             self.keyboard.release('p')
         time.sleep(self.COMMAND_SLEEP_TIME)
 
+    def send_clear_screen(self):
+        with self.keyboard.pressed(Key.ctrl):
+            self.keyboard.press('a')
+            self.keyboard.release('a')
+        time.sleep(self.COMMAND_SLEEP_TIME)
+
     def __send_num_enter(self):
         input_enter.PressKey(input_enter.ENTER,input_enter.INPUT_KEYBOARD,input_enter.KEYEVENTF_EXTENDEDKEY)
         time.sleep(0.1)

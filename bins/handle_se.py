@@ -1,9 +1,9 @@
 from functions import ReadTxt2String
 
 class SE:
-    def __init__(self,SeFilePath,Symbol):
+    def __init__(self,SeContent,Symbol):
         super().__init__()
-        self.__se_content=ReadTxt2String(SeFilePath)
+        self.__se_content=SeContent
         self.individual_seats=[]
         self.combination_seats=[]
         self.GetListOfSymbol(Symbol)
@@ -61,6 +61,9 @@ class SE:
         self.combination_seats = self.__combination_seats()
         self.combination_seats = self.__sort_by_row()
 
-se=SE(r'C:\Users\gostn\OneDrive\桌面\eterm\se.txt','X')
-print(se.individual_seats)
-print(se.combination_seats)
+def main():
+    se=SE(ReadTxt2String(r'C:\Users\gostn\OneDrive\桌面\eterm\se.txt'),'X')
+    print(se.individual_seats)
+    print(se.combination_seats)
+if __name__ == "__main__":
+    main()

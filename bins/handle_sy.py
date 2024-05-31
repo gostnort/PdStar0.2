@@ -9,7 +9,8 @@ class SY():
         self.gate=''
         self.leg=''
         self.bdt=''
-        self.__arrival = Arrival
+        self.seat_configuration=''
+        self.__arrival = str(Arrival)
         self.__sy_content = SyContent
         self.__run()
 
@@ -17,6 +18,7 @@ class SY():
         last_index = self.__get_ac_type()
         last_index = self.__get_gate(last_index)
         last_index = self.__get_bdt(last_index)
+        last_index = self.__get_Cnf(last_index)
         if self.__arrival != '':
             self.leg= self.__arrival + "LAX"
             last_index = self.__get_checked(last_index)
@@ -59,6 +61,16 @@ class SY():
         except ValueError as e:
             print("__get_bdt() has an error.\n",e)
             return 0
+        
+    def __get_Cnf(self,last_index):
+        try:
+            pattern=re.compile(r'CNF/.*?\s')
+            match=re.search(pattern,self.__sy_content[last_index:])
+            self.seat_configuration=match.group(0)[4:]
+            return match.end()
+        except ValueError as e:
+            print("__get_Cnf() has an error.\n",e)
+            return 0    
     
     def __get_leg(self,last_index):
         try:
@@ -100,11 +112,12 @@ class SY():
         except ValueError as e:
             print("__get_checked() has an error.\n",e)
             return 0
+        
 
 import functions
 def main():
     sy_content=functions.ReadTxt2String(r'C:\Users\gostn\OneDrive\桌面\eterm\sy_direct.txt')
-    sy=SY(sy_content,False)
-    print(sy.ac_reg,sy.ac_type,sy.bdt,sy.gate,sy.leg,sy.ret_minus_id)
+    sy=SY(sy_content)
+    print(sy.ac_reg,sy.ac_type,sy.bdt,sy.gate,sy.seat_configuration,sy.leg,sy.ret_minus_id)
 if __name__ == "__main__":
     main()
