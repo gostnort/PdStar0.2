@@ -1,13 +1,33 @@
 from functions import ReadTxt2String
 
 class SE:
-    def __init__(self,SeFilePath):
+    def __init__(self,SeFilePath,Symbol):
         super().__init__()
         self.__se_content=ReadTxt2String(SeFilePath)
-        self.x_seats=[]
-        self.run()
+        self.individual_seats=[]
+        self.combination_seats=[]
+        self.GetListOfSymbol(Symbol)
 
-    def run(self):
+    def __combination_seats(self):
+        seats=[]
+        for seat in reversed(self.individual_seats):
+            current_row=seat[:2]
+            bol_found = False
+            for i in range(0,len(seats)):
+                exsit_row=seats[i][:2]
+                if current_row == exsit_row:
+                    seats[i]=seats[i] + seat[-1]
+                    bol_found = True
+                    break
+            if not bol_found:
+                seats.append(seat)
+        return seats
+
+    def __sort_by_row(self):
+        sorted_list = sorted(self.combination_seats, key=lambda x: int(x[:2]))
+        return sorted_list
+
+    def GetListOfSymbol(self,Symbol):
         lines = self.__se_content.split('\n')
         columns = {}
         coordinates = {}
@@ -33,10 +53,14 @@ class SE:
                                 coordinates[f"{columns[key]}{line[n]}"]=char
                                 break
 
-        # Find the coordinates where the character is 'X'
+        # Find the coordinates where the character is the Symbol
         for key, char in coordinates.items():
-            if char == 'X':
-                self.x_seats.append(key)
+            if char == Symbol:
+                self.individual_seats.append(key)
 
-se=SE(r'C:\Users\gostn\OneDrive\桌面\eterm\se.txt')
-print(se.x_seats)
+        self.combination_seats = self.__combination_seats()
+        self.combination_seats = self.__sort_by_row()
+
+se=SE(r'C:\Users\gostn\OneDrive\桌面\eterm\se.txt','X')
+print(se.individual_seats)
+print(se.combination_seats)
