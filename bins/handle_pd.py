@@ -1,3 +1,4 @@
+import re
 
 class pd_properties():
     __Pd_item_list=[]
@@ -9,7 +10,7 @@ class pd_properties():
     ErrorMessage=[]
     DebugMessage=[]
 
-    def run(self,pd_text,bol_name=False,bol_seat=False):
+    def GetConflict(self,pd_text,bol_name=False,bol_seat=False):
         self.__Pd_item_list.clear()
         self.__Pd_text.clear()
         self.NameMessage.clear()
@@ -18,11 +19,7 @@ class pd_properties():
         self.DebugMessage.clear()
         self.bol_name=False
         self.bol_seat=False
-        index=str(pd_text).find('1.')
-        if index == 0:
-            return self.__Pd_item_list
-        self.__Pd_text = pd_text.copy()
-        self.__Pd_text = self.__RegularityPd()
+        self.__Pd_text = self.__FirstLinePd(pd_text)
         self.__FillOutContents()
         if bol_name:
             self.bol_name=self.__check_duplicate_names()
@@ -45,10 +42,11 @@ class pd_properties():
             self.ErrorMessage.append("An Error occured of "+first_line_text)
         return False
     
-    def __RegularityPd(self):
+    def __FirstLinePd(self,PdTextList):
         regularity_pd=[]
-        for line in self.__Pd_text:
-            if line.find('>') == -1:
+        pattern=re.compile(r'^\s*\d+\.\s')
+        for line in PdTextList:
+            if line[0] != '>' and re.match(pattern,line):
                 regularity_pd.append(line)
         return regularity_pd
     
@@ -88,3 +86,22 @@ class pd_properties():
                     self.SeatMessage.append('PR'+sn+'PD seat assigned '+seat)
                     break
         return len(self.SeatMessage) != 0
+    
+    def GetLastCount(self,PdTextList):
+        pattern = re.compile(r'\d+\.\s')
+        for line in reversed(PdTextList):
+            match=pattern.search(line)
+            if match:
+                name_line = self.__SeprateFirstLine(line)
+                return name_line[0]
+        return 0
+            
+    
+import functions
+def main():
+    pdcontent=functions.ReadTxt2List(r'C:\Users\gostn\OneDrive\桌面\eterm\pd_all.txt')
+    pd=pd_properties()
+    #pd.run(pdcontent)
+    print(pd.GetLastCount(pdcontent))
+if __name__ == "__main__":
+    main()

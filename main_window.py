@@ -157,7 +157,7 @@ class MainWindow(QMainWindow):
         file_path = self.file_path_edit.text()
         pd_text=functions.ReadTxt2List(file_path)
         pd=pd_properties()
-        pd.run(pd_text,self.dup_name_check.isChecked(),self.dup_seats_check.isChecked())
+        pd.GetConflict(pd_text,self.dup_name_check.isChecked(),self.dup_seats_check.isChecked())
         if len(pd.ErrorMessage) != 0:
             for line in pd.ErrorMessage:
                 self.result_text_edit.append(line)
