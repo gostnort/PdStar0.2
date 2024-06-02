@@ -2,13 +2,13 @@
     "default_path":"x:\\qqqqq.txt",
     "arrival_section":[
         {
-            "sy":"SY ${arrival_flight_number}/${arrival_date}",
-            "se":"SE ${arrival_flight_number}/${arrival_date}/*/${arrival}"
+            "sy":"SY ${arrival_flight_number}/${arrival_date}/${arrival}",
+            "se":"SE ${arrival_flight_number}/${arrival_date}/*${arrival}LAX"
         }
     ],
     "departure_section":[
         {
-            "av":"AV ${departure_flight_number}/${departure_date}",
+            "av":"AV CA${departure_flight_number}/${departure_date}",
             "ft":"FT ${departure_flight_number}/${departure_date}",
             "sy":"sy",
             "special_INF":"pd*,inf",
@@ -21,14 +21,13 @@
             "special_No_ET":"pd*,net,nid",
             "special_INAD":"pd*,inad",
             "special_DEL":"pd*,del",
-            "special_XRES":"BND *",
+            "special_XRES":"BND ${departure_flight_number}/${departure_date}",
             "special_PPOC":"pd*,ppoc",
             "special_EXST":"pd*,exst",
             "special_BLND":"pd*,blnd",
             "special_DEAF":"pd*,deaf",
             "special_WEAP":"pd*,weap",
-            "special_I":"pd*,i",
-            "special_MASS":"pd*,mass"
+            "special_I":"pd*,i"
         }
     ],
     "comment":[
@@ -39,6 +38,6 @@
         }
     ],
     "stop_turn_page":[
-        "av","ft"
+        "av","ft","special_XRES"
     ]
 }

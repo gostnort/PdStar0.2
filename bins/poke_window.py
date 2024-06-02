@@ -53,7 +53,7 @@ class RequestData():
         bol_stop_listerner = False
         bol_stop_listerner = self.__send_arrival_commands(listener_loop)
         if not bol_stop_listerner:
-          bol_stop_listerner = self.__send_departure_commands(listener_loop)
+            bol_stop_listerner = self.__send_departure_commands(listener_loop)
         event2.wait()
         print(listener_loop.click_position)
         listener_loop.join()
@@ -75,58 +75,82 @@ class RequestData():
         return obj
 
     def __send_arrival_commands(self,listener):
-        keyboard=key_controller()
         for key in self.commands['arrival_section'][0]:
             if listener.click_position == None:
-                command_thread=keyboard_simulate.SendKeys(self.commands['arrival_section'][0][key],self.command_pending_time)
-                command_thread.start()
-                command_thread.join()
-                bol_stop_pages = False
-                for stop_key in self.commands['stop_turn_page']:
-                    if stop_key == key:
-                        bol_stop_pages = True
-                if not bol_stop_pages:
-                    command_thread=keyboard_simulate.SendKeys('PF1',self.command_pending_time)
-                    command_thread.start()
-                    command_thread.join()
-                keyboard.type(self.COMMAND_END_MARK)
-                if not bol_stop_pages and not self.bol_debug:
-                    command_thread.send_clear_screen()
-                if not self.bol_debug:
-                    command_thread.send_print_keys()
+                        bol_stop_pages = False
+                        for stop_key in self.commands['stop_turn_page']:
+                            if stop_key == key:
+                                bol_stop_pages = True
+                        if bol_stop_pages:
+                            if self.bol_debug:
+                                keyboard_simulate.SendCommand(self.commands['arrival_section'][0][key],
+                                                            self.command_pending_time)
+                                keyboard_simulate.SendString(self.COMMAND_END_MARK)
+                            else:
+                                keyboard_simulate.SendCommand(self.commands['arrival_section'][0][key],
+                                                            self.command_pending_time,True)
+                                keyboard_simulate.SendString(self.COMMAND_END_MARK,True,False)
+                        else:
+                            keyboard_simulate.SendCommand(self.commands['arrival_section'][0][key],
+                                                        self.command_pending_time,False)
+                            keyboard_simulate.SendCommand('PF1'
+                                                        ,self.command_pending_time)
+                            keyboard_simulate.SendString(self.COMMAND_END_MARK,
+                                                        0,
+                                                        True,
+                                                        False)
             else:
                 return True
-        keyboard.type(self.ARRIVAL_END_MARK)
-        if not self.bol_debug:
-                command_thread.send_print_keys()
+        if self.bol_debug:
+            keyboard_simulate.SendString(self.ARRIVAL_END_MARK,
+                                            0,
+                                            False,
+                                            True)
+        else:
+            keyboard_simulate.SendString(self.ARRIVAL_END_MARK,
+                                            0,
+                                            True,
+                                            True)
         return False
         
 
     def __send_departure_commands(self,listener):
-        keyboard=key_controller()
         for key in self.commands['departure_section'][0]:
-            if listener.click_position == None:
-                command_thread=keyboard_simulate.SendKeys(self.commands['departure_section'][0][key],self.command_pending_time)
-                command_thread.start()
-                command_thread.join()
-                bol_stop_pages = False
-                for stop_key in self.commands['stop_turn_page']:
-                    if stop_key == key:
-                        bol_stop_pages = True
-                if not bol_stop_pages:
-                    command_thread=keyboard_simulate.SendKeys('PL',self.command_pending_time)
-                    command_thread.start()
-                    command_thread.join()
-                keyboard.type(self.COMMAND_END_MARK)
-                if not bol_stop_pages and not self.bol_debug:
-                    command_thread.send_clear_screen()
-                if not self.bol_debug:
-                    command_thread.send_print_keys()
-            else:
-                return True
-        keyboard.type(self.DEPARTURE_END_MARK)
-        if not self.bol_debug:
-                command_thread.send_print_keys()
+                    if listener.click_position == None:
+                        bol_stop_pages = False
+                        for stop_key in self.commands['stop_turn_page']:
+                            if stop_key == key:
+                                bol_stop_pages = True
+                        if bol_stop_pages:
+                            if self.bol_debug:
+                                keyboard_simulate.SendCommand(self.commands['departure_section'][0][key],
+                                                            self.command_pending_time)
+                                keyboard_simulate.SendString(self.COMMAND_END_MARK)
+                            else:
+                                keyboard_simulate.SendCommand(self.commands['departure_section'][0][key],
+                                                            self.command_pending_time,True)
+                                keyboard_simulate.SendString(self.COMMAND_END_MARK,True,False)
+                        else:
+                            keyboard_simulate.SendCommand(self.commands['departure_section'][0][key],
+                                                        0.3,False)
+                            keyboard_simulate.SendCommand('PL1'
+                                                        ,self.command_pending_time,True)
+                            keyboard_simulate.SendString(self.COMMAND_END_MARK,
+                                                        0,
+                                                        True,
+                                                        True)
+                    else:
+                        return True
+        if self.bol_debug:
+            keyboard_simulate.SendString(self.DEPARTURE_END_MARK,
+                                            0,
+                                            False,
+                                            True)
+        else:
+            keyboard_simulate.SendString(self.DEPARTURE_END_MARK,
+                                            0,
+                                            True,
+                                            True)
         return False
 
 class HandleData():
@@ -183,7 +207,7 @@ def main():
     parser = argparse.ArgumentParser(description="PD start")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
-    #RequestData(r'C:\Users\gostn\我的Github库\PdStar0.2\resources',r'983/984/01JUN/02JUN/PEK',0.7,args.debug)
-    HandleData(r'C:\Users\gostn\OneDrive\桌面\eterm\test_sample.txt','PEK')
+    RequestData(r'C:\Users\Admin\Downloads\PdStar0.2-main\resources',r'818/818/01JUN/01JUN/IAD',0.5,args.debug)
+    HandleData(r'x:\qqqqq.txt','IAD')
 if __name__ == "__main__":
     main()

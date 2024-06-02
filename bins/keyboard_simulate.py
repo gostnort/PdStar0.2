@@ -22,28 +22,26 @@ class ClickListener(threading.Thread):
             listener.join()
 
 class SendKeys(threading.Thread):
-    def __init__(self,command,pending):
+    def __init__(self):
         super().__init__()
         self.keyboard = key_controller()
         self.mouse = mouse_controller()
-        self.COMMAND=command
-        self.COMMAND_SLEEP_TIME=pending
 
     def __send_escape_keys(self):
         self.keyboard.press(Key.esc)
         self.keyboard.release(Key.esc)
 
-    def send_print_keys(self):
+    def send_print_keys(self,SleepTime=0):
         with self.keyboard.pressed(Key.ctrl):
             self.keyboard.press('p')
             self.keyboard.release('p')
-        time.sleep(self.COMMAND_SLEEP_TIME)
-
-    def send_clear_screen(self):
+        time.sleep(SleepTime)
+        
+    def send_clear_screen(self,SleepTime=0):
         with self.keyboard.pressed(Key.ctrl):
             self.keyboard.press('a')
             self.keyboard.release('a')
-        time.sleep(self.COMMAND_SLEEP_TIME)
+        time.sleep(SleepTime)
 
     def __send_num_enter(self):
         input_enter.PressKey(input_enter.ENTER,input_enter.INPUT_KEYBOARD,input_enter.KEYEVENTF_EXTENDEDKEY)
@@ -55,17 +53,56 @@ class SendKeys(threading.Thread):
         self.keyboard.press(Key.f12)
         self.keyboard.release(Key.f12)
 
-    def run(self):
+    def run_enter(self,Command,SleepTime):
         self.__send_escape_keys()
-        self.keyboard.type(self.COMMAND)
+        self.keyboard.type(Command)
         self.__send_num_enter()
-        time.sleep(self.COMMAND_SLEEP_TIME)
+        time.sleep(SleepTime)
 
-    def run_f12(self):
+    def run_f12(self,Command,SleepTime):
         self.__send_escape_keys()
-        self.keyboard.type(self.COMMAND)
+        self.keyboard.type(Command)
         self.__send_f12_enter()
-        time.sleep(self.COMMAND_SLEEP_TIME)
+        time.sleep(SleepTime)
+
+    def send_string(self,text,SleepTime):
+        self.keyboard.type(text)
+        time.sleep(SleepTime)
+
+def SendCommand(Command,SleepTime=0,BolPrint=False,BolClear=True):
+    if BolClear:
+        clear_screen_thread = SendKeys()
+        clear_screen_thread.send_clear_screen(SleepTime)
+        clear_screen_thread.start()
+        clear_screen_thread.join()
+    command_thread=SendKeys()
+    command_thread.run_f12(Command,SleepTime)
+    command_thread.start()
+    command_thread.join()
+    if BolPrint:
+        print_thread=SendKeys()
+        print_thread.send_print_keys(SleepTime)
+        print_thread.start()
+        print_thread.join()
+
+
+def SendString(Text,SleepTime=0,BolPrint=False,BolClear=True):
+    if BolClear:
+        clear_screen_thread = SendKeys()
+        clear_screen_thread.send_clear_screen(SleepTime)
+        clear_screen_thread.start()
+        clear_screen_thread.join()
+    command_thread=SendKeys()
+    command_thread.send_string(Text,SleepTime)
+    command_thread.start()
+    command_thread.join()
+    if BolPrint:
+        print_thread=SendKeys()
+        print_thread.send_print_keys(SleepTime)
+        print_thread.start()
+        print_thread.join()
+    
+
 
 if __name__ == "__main__":
     # Create separate event objects for each listener
