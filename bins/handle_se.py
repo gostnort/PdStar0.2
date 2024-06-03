@@ -1,12 +1,22 @@
-from functions import ReadTxt2String
+from functions import ReadTxt2List, String2List
+import re
 
 class SE:
     def __init__(self,SeContent,Symbol):
         super().__init__()
-        self.__se_content=SeContent
+        if isinstance(SeContent,str):
+            self.__se_content = String2List(SeContent)
+        else:    
+            self.__se_content=SeContent
         self.individual_seats=[]
         self.combination_seats=[]
+        self.FirstLineIndex = self.__SearchSe()
         self.GetListOfSymbol(Symbol)
+
+    def __SearchSe(self):
+        for index, line in enumerate(self.__se_content):
+            if line.find('SE:') != -1:
+                return index
 
     def __combination_seats(self):
         seats=[]
@@ -24,32 +34,34 @@ class SE:
         return seats
 
     def __sort_by_row(self):
-        sorted_list = sorted(self.combination_seats, key=lambda x: int(x[:2]))
+        # Regex pattern to match leading digits
+        pattern = re.compile(r'^\d+')
+        # Extract the leading digits and convert to integer for sorting
+        sorted_list = sorted(self.combination_seats, key=lambda x: int(pattern.match(x).group()) if pattern.match(x) else 0)
         return sorted_list
 
     def GetListOfSymbol(self,Symbol):
-        lines = self.__se_content.split('\n')
         columns = {}
         coordinates = {}
         # 先找有数据的列，并整理列号。
         digit10=0
-        for i, char in enumerate(lines[2]):
+        for i, char in enumerate(self.__se_content[self.FirstLineIndex+2]):
             if char.isdigit():
-                if lines[1][i].isdigit():
-                    digit10=int(lines[1][i]) * 10
+                if self.__se_content[self.FirstLineIndex+1][i].isdigit():
+                    digit10=int(self.__se_content[self.FirstLineIndex+1][i]) * 10
                 column_number = int(char) + digit10
                 columns[i] = column_number
 
         # 跳过前两行，根据已有的列号，找每行内的非数字，非空格，非回车。
         # 然后逆向查找前面的字母，且这个字母所在列的第一行是一个字母。
         # 写入座位号。
-        for i, line in enumerate(lines):
-            if i > 2 and len(line) > 4:
+        for i, line in enumerate(self.__se_content):
+            if i > self.FirstLineIndex+2 and len(line) > 4:# 跳过指令和坐标段，且跳过空行或者只有>
                 for key in columns:
                     char = line[key]
                     if not char.isdigit() and not char.isspace() and char != '\n':
-                        for n in range(key-1,1,-1):
-                            if line[n].isalpha() and lines[1][n].isalpha():
+                        for n in range(key-1,0,-1):
+                            if line[n].isalpha() and self.__se_content[self.FirstLineIndex+1][n].isalpha():
                                 coordinates[f"{columns[key]}{line[n]}"]=char
                                 break
 
@@ -62,7 +74,7 @@ class SE:
         self.combination_seats = self.__sort_by_row()
 
 def main():
-    se=SE(ReadTxt2String(r'C:\Users\gostn\OneDrive\桌面\eterm\se.txt'),'X')
+    se=SE(ReadTxt2List(r'C:\Users\gostn\OneDrive\桌面\eterm\se.txt'),'X')
     print(se.individual_seats)
     print(se.combination_seats)
 if __name__ == "__main__":

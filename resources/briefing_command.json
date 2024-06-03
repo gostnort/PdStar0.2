@@ -27,17 +27,13 @@
             "special_BLND":"pd*,blnd",
             "special_DEAF":"pd*,deaf",
             "special_WEAP":"pd*,weap",
-            "special_I":"pd*,i"
-        }
-    ],
-    "comment":[
-        {
-            "airc":"airc:ca/${ac_reg}",
-            "cwd":"cwd:${departure_flight_number}",
-            "jcsy":"jcsy ${departure_flight_number}/${departure_date}/LAX,o"
+            "special_I":"pd*,i",
+            "comment_INOP_Seat":"airc:ca/${ac_reg}",
+            "comment_CWD":"cwd:${departure_flight_number}",
+            "comment_Inbound_Late":"jcsy ${departure_flight_number}/${departure_date}/LAX,i"
         }
     ],
     "stop_turn_page":[
-        "av","ft","special_XRES"
+        "av","ft","special_XRES","comment_INOP_Seat"
     ]
 }

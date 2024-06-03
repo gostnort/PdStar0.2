@@ -155,16 +155,25 @@ class RequestData():
 
 class HandleData():
     END_MARK = '===END==='
+    ARRIVAL_MARK='===ARRIVAL_END=== '
     def __init__(self,FilePath,Arrival):
         super().__init__()
         txt_list = functions.ReadTxt2List(FilePath)
-        self.results=[]
+        self.arrival_set=[]
+        self.departure_set=[]
         tmp_str = ''
+        bol_arrival = True
         for line in txt_list:
+            if line.find(self.ARRIVAL_MARK) != -1:
+                bol_arrival = False
             if line.find(self.END_MARK) == -1:
                 tmp_str=tmp_str + line
+                continue
+            if bol_arrival:
+                self.arrival_set.append(tmp_str)
+                tmp_str = ''
             else:
-                self.results.append(tmp_str)
+                self.departure_set.append(tmp_str)
                 tmp_str = ''
         self.arrival = Arrival
         self.arrival_leg=''
@@ -176,38 +185,36 @@ class HandleData():
         self.__get_departure_data()
 
     def __get_arrival_data(self):
-        for index,command in enumerate(self.results):
-            if command.find('ARRIVAL_END') == -1:
-                if command.find('SY:') != -1:
-                    my_sy=SY(command,self.arrival)
-                    self.arrival_ac_reg=my_sy.ac_reg
-                    self.arrival_leg=my_sy.leg
-                    self.arrival_pax_break_down=my_sy.checked
-                    self.arrival_seat_configuration=my_sy.seat_configuration
-                    self.results[index] = ''
-                if command.find('SE:') != -1:
-                    my_se=SE(command,'X')
-                    self.arrival_blocked_seats=my_se.combination_seats
-                    self.results[index] = ''
-            else:
-                break
+        for index,command in enumerate(self.arrival_set):
+            if command.find('SY:') != -1:
+                my_sy=SY(command,self.arrival)
+                self.arrival_ac_reg=my_sy.ac_reg
+                self.arrival_leg=my_sy.leg
+                self.arrival_pax_break_down=my_sy.checked
+                self.arrival_seat_configuration=my_sy.seat_configuration
+                self.arrival_set[index] = ''
+                continue
+            if command.find('SE:') != -1:
+                my_se=SE(command,'X')
+                print(command)
+                self.arrival_blocked_seats=my_se.combination_seats
+                print(self.arrival_blocked_seats)
+                self.arrival_set[index] = ''
+                continue
         
     def __get_departure_data(self):
-        for command in self.results:
-            if command.find('DEPARTRUE_END')== -1:
-                if command.find('PD:') != -1:
-                    pd=PD()
-                    list_command = functions.String2List(command)
-                    pd.GetLastCount(list_command)
-            else:
-                break
+        for command in self.departure_set:
+            if command.find('PD:') != -1:
+                pd=PD()
+                list_command = functions.String2List(command)
+                pd.GetLastCount(list_command)
 
 
 def main():
     parser = argparse.ArgumentParser(description="PD start")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
-    RequestData(r'C:\Users\Admin\Downloads\PdStar0.2-main\resources',r'818/818/01JUN/01JUN/IAD',0.5,args.debug)
-    HandleData(r'x:\qqqqq.txt','IAD')
+    #RequestData(r'C:\Users\Admin\Downloads\PdStar0.2-main\resources',r'818/818/01JUN/01JUN/IAD',0.5,args.debug)
+    HandleData(r'C:\Users\gostn\OneDrive\桌面\eterm\qqqqq.txt','IAD')
 if __name__ == "__main__":
     main()
