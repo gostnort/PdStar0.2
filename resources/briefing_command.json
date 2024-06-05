@@ -1,5 +1,6 @@
 {
     "default_path":"x:\\qqqqq.txt",
+    "arrival":"${arrival}",
     "arrival_section":[
         {
             "sy":"SY ${arrival_flight_number}/${arrival_date}/${arrival}",
@@ -21,7 +22,7 @@
             "special_No_ET":"pd*,net,nid",
             "special_INAD":"pd*,inad",
             "special_DEL":"pd*,del",
-            "special_XRES":"BND ${departure_flight_number}/${departure_date}",
+            "special_DEL_Num":"BND ${departure_flight_number}/${departure_date}",
             "special_PPOC":"pd*,ppoc",
             "special_EXST":"pd*,exst",
             "special_BLND":"pd*,blnd",
