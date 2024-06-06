@@ -8,11 +8,14 @@ from handle_pd import PD
 import functions
 import re
 from handle_bnd import BND
+from handle_av import AV
+from write_xlxs import FillOut
+from datetime import datetime
 '''
 input:string,string,float,bol
 input example: 'c:\\users','983/984/01JUN/02JUN/PEK',0.7,True
 '''
-class GetBriefingCommand():
+class GetBriefingJson():
     def __init__(self, JsonFolder, FlightInfo):
         super().__init__()
         with open(JsonFolder + r'\briefing_command.json','r') as file:
@@ -58,7 +61,7 @@ class RequestData():
         self.commands=BriefCommands
         self.bol_debug = Debug
         self.command_pending_time=CommandPending
-        #self.run()
+        self.run()
 
     def run(self):
         event1=threading.Event()
@@ -158,12 +161,12 @@ class RequestData():
                                             True)
         return False
 
-class HandleData():
+class ProcessData():
     END_MARK = '===END==='
     ARRIVAL_MARK='===ARRIVAL_END=== '
-    def __init__(self,BriefCommands,FilePath):
+    def __init__(self,BriefCommands,ExcelJsonPath,CommandsFilePath,):
         super().__init__()
-        txt_list = functions.ReadTxt2List(FilePath)
+        txt_list = functions.ReadTxt2List(CommandsFilePath)
         self.commands=BriefCommands
         self.arrival_set=[]
         self.departure_set=[]
@@ -181,15 +184,24 @@ class HandleData():
             else:
                 self.departure_set.append(tmp_str)
                 tmp_str = ''
+        self.arrival_flight_number=''
         self.arrival_leg=''
+        self.departure_flight_number=''
+        self.departure_leg=''
+        self.departure_flight_date=''
         self.arrival_seat_configuration=''
+        self.departure_etd=''
+        self.departure_eta=''
         self.arrival_ac_reg=''
+        self.departure_boarding_time=''
         self.arrival_pax_break_down=''
-        self.arrival_blocked_seats=''
+        self.departure_pax_break_down=''
+        self.departure_gate=''
         self.special={}
         self.comment={}
         self.__get_arrival_data() #It would clear data after processing.
         self.__get_departure_data()
+        self.__write_xlsx(ExcelJsonPath)
 
     def __get_arrival_data(self):
         for index,command in enumerate(self.arrival_set):
@@ -197,13 +209,19 @@ class HandleData():
                 my_sy=SY(command,self.commands['arrival'])
                 self.arrival_ac_reg=my_sy.ac_reg
                 self.arrival_leg=my_sy.leg
-                self.arrival_pax_break_down=my_sy.checked
+                tmp_list=my_sy.checked.split('/')
+                total=0
+                for n in tmp_list:
+                    total = total + int(n)
+                self.arrival_pax_break_down=my_sy.checked + '=' + str(total)
                 self.arrival_seat_configuration=my_sy.seat_configuration
+                self.arrival_flight_number=my_sy.flight
                 self.arrival_set[index] = ''
                 continue
             if command.find('SE:') != -1:
                 my_se=SE(command,'X')
-                self.arrival_blocked_seats=my_se.combination_seats
+                str_block_seats=','.join(my_se.combination_seats)
+                self.comment['Inbound_Block']=str_block_seats
                 self.arrival_set[index] = ''
                 continue
         
@@ -225,7 +243,22 @@ class HandleData():
                             new_key=key[8:]
                             self.special[new_key]=bnd
                             break
-        print(self.special)
+            if 'AV:' in command:
+                av=AV(command)
+                self.departure_etd=av.Etd
+                self.departure_eta=av.Eta
+            if 'SY:' in command:
+                sy=SY(command)
+                self.departure_gate=sy.gate
+                self.departure_boarding_time=sy.bdt
+                tmp_list=sy.ret_minus_id.split('/')
+                total = 0
+                for n in tmp_list:
+                    total = total + int(n)
+                self.departure_pax_break_down=sy.ret_minus_id + '=' + str(total)
+                self.departure_flight_number=sy.flight
+                self.departure_flight_date=sy.flight_date 
+                self.departure_leg=sy.leg
 
     def __get_pd_special_key(self,command):
         for key in self.commands['departure_section'][0]:
@@ -234,14 +267,38 @@ class HandleData():
                 pattern=re.compile(input_command[:2]+':.'+input_command[2:])
                 if pattern.search(command):
                     return key[8:]
-
+                
+    def __write_xlsx(self,file_path):
+        xlsx=FillOut(file_path)
+        xlsx.WriteArrivalFlight(self.arrival_flight_number)
+        xlsx.WriteArrivalLeg(self.arrival_leg)
+        xlsx.WriteDepartureFlight(self.departure_flight_number)
+        xlsx.WriteDepartureLeg(self.departure_leg)
+        xlsx.WriteDepartureDate(self.departure_flight_date)
+        xlsx.WriteArrivalSeatConfiguration(self.arrival_seat_configuration)
+        xlsx.WriteDepartureEtd(self.departure_etd)
+        xlsx.WriteDepartureEta(self.departure_eta)
+        xlsx.WriteArricalAc(self.arrival_ac_reg)
+        xlsx.WriteDepartureBdt(self.departure_boarding_time)
+        xlsx.WriteArrivalPax(self.arrival_pax_break_down)
+        xlsx.WriteDeparturePax(self.departure_pax_break_down)
+        xlsx.WriteDepartureGate(self.departure_gate)
+        xlsx.WriteComments(self.comment)
+        xlsx.WriteSpecials(self.special)
+        current_time = datetime.now().time()
+        # Convert the current time to a long integer
+        time_long = int(current_time.strftime("%H%M%S"))
+        xlsx.save_copy(self.arrival_flight_number 
+                       +'.'+self.departure_flight_number
+                       +'.'+self.departure_flight_date
+                       + '-'+str(time_long) + '.xlsx')
 
 def main():
     parser = argparse.ArgumentParser(description="PD start")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
-    briefing_commands=GetBriefingCommand(r'C:\Users\gostn\我的Github库\PdStar0.2\resources',r'818/818/01JUN/01JUN/IAD').Commands
+    briefing_json=GetBriefingJson(r'C:\Users\gostn\我的Github库\PdStar0.2\resources',r'818/818/01JUN/01JUN/IAD').Commands
     #RequestData(briefing_commands, 0.5,args.debug)
-    HandleData(briefing_commands,r'C:\Users\gostn\OneDrive\桌面\eterm\qqqqq.txt')
+    ProcessData(briefing_json,r'C:\Users\gostn\我的Github库\PdStar0.2\resources',r'C:\Users\gostn\OneDrive\桌面\eterm\qqqqq.txt')
 if __name__ == "__main__":
     main()

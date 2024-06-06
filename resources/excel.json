@@ -1,5 +1,5 @@
 {
-    "right_side":[
+    "right_side":
         {
             "arrival_flight_number":"J1",
             "arrival_leg":"K1",
@@ -19,5 +19,4 @@
             "Comment":"J8:P11",
             "Special_count":"J12:P13"
         }
-    ]
 }
