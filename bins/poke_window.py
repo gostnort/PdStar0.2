@@ -11,6 +11,7 @@ from handle_bnd import BND
 from handle_av import AV
 from write_xlxs import FillOut
 from datetime import datetime
+
 '''
 input:string,string,float,bol
 input example: 'c:\\users','983/984/01JUN/02JUN/PEK',0.7,True
@@ -18,6 +19,7 @@ input example: 'c:\\users','983/984/01JUN/02JUN/PEK',0.7,True
 class GetBriefingJson():
     def __init__(self, JsonFolder, FlightInfo):
         super().__init__()
+        self.__josn_folder = JsonFolder
         with open(JsonFolder + r'\briefing_command.json','r') as file:
             json_structure = json.load(file)
         split_values = FlightInfo.split('/')
@@ -36,6 +38,7 @@ class GetBriefingJson():
             "ac_reg":""
         }
         self.Commands = self.__fill_placeholders(json_structure,values)
+
     
         # Function to replace placeholders
     def __fill_placeholders(self, obj, values):
@@ -51,6 +54,10 @@ class GetBriefingJson():
             # Recursively handle dictionaries
             return {key: self.__fill_placeholders(value, values) for key, value in obj.items()}
         return obj
+    
+    def ProcessAndSave(self):
+        pd=ProcessData(self.Commands,r'C:\Users\gostn\OneDrive\桌面\eterm\qqqqq.txt')
+        pd.WiteXlsx(self.__josn_folder)
 
 class RequestData():
     COMMAND_END_MARK = '\n===END===\n'
@@ -164,7 +171,7 @@ class RequestData():
 class ProcessData():
     END_MARK = '===END==='
     ARRIVAL_MARK='===ARRIVAL_END=== '
-    def __init__(self,BriefCommands,ExcelJsonPath,CommandsFilePath,):
+    def __init__(self,BriefCommands,CommandsFilePath,):
         super().__init__()
         txt_list = functions.ReadTxt2List(CommandsFilePath)
         self.commands=BriefCommands
@@ -201,7 +208,6 @@ class ProcessData():
         self.comment={}
         self.__get_arrival_data() #It would clear data after processing.
         self.__get_departure_data()
-        self.__write_xlsx(ExcelJsonPath)
 
     def __get_arrival_data(self):
         for index,command in enumerate(self.arrival_set):
@@ -268,8 +274,8 @@ class ProcessData():
                 if pattern.search(command):
                     return key[8:]
                 
-    def __write_xlsx(self,file_path):
-        xlsx=FillOut(file_path)
+    def WiteXlsx(self,JsonPath):
+        xlsx=FillOut(JsonPath)
         xlsx.WriteArrivalFlight(self.arrival_flight_number)
         xlsx.WriteArrivalLeg(self.arrival_leg)
         xlsx.WriteDepartureFlight(self.departure_flight_number)
@@ -297,8 +303,8 @@ def main():
     parser = argparse.ArgumentParser(description="PD start")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
-    briefing_json=GetBriefingJson(r'C:\Users\gostn\我的Github库\PdStar0.2\resources',r'818/818/01JUN/01JUN/IAD').Commands
+    GetData=GetBriefingJson(r'C:\Users\gostn\我的Github库\PdStar0.2\resources',r'818/818/01JUN/01JUN/IAD')
     #RequestData(briefing_commands, 0.5,args.debug)
-    ProcessData(briefing_json,r'C:\Users\gostn\我的Github库\PdStar0.2\resources',r'C:\Users\gostn\OneDrive\桌面\eterm\qqqqq.txt')
+    GetData.ProcessAndSave()
 if __name__ == "__main__":
     main()
