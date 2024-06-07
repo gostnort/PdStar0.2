@@ -166,7 +166,7 @@ class FillOut():
             cells_range=self.__json['right_side']['Special_count']
         cells=self.__get_cells(cells_range)
         for cell_tmp,key in zip(cells,Specials):
-            self.WorkSheet[cell_tmp]=key + Specials[key]
+            self.WorkSheet[cell_tmp]=key + ' '+ str(Specials[key])
 
     def WriteComments(self,Comments,Bol_Left=False):
         if Bol_Left:

@@ -234,9 +234,8 @@ class ProcessData():
     def __get_departure_data(self):
         for command in self.departure_set:
             if command.find('PD:') != -1:
-                pd=PD()
-                list_command = functions.String2List(command)
-                count = pd.GetLastCount(list_command)
+                pd=PD(command)
+                count = pd.GetLastCount()
                 key = self.__get_pd_special_key(command)
                 if count!=0:
                     self.special[key]=count

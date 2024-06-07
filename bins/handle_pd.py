@@ -1,32 +1,77 @@
 import re
-
+import functions
 class PD():
-    __Pd_item_list=[]
-    __Pd_text=[]
-    bol_name=False
-    NameMessage=[]
-    bol_seat=False
-    SeatMessage=[]
-    ErrorMessage=[]
-    DebugMessage=[]
+    def __init__(self,PdList):
+        super().__init__()
+        self.__source_pd_list={}
+        if isinstance(PdList,str):
+            self.__source_pd_list=functions.String2List(PdList)
+        else:
+            self.__source_pd_list=PdList
+        self.__pd_dict={}
+        self.__pax_dict_in_list=[]
+        self.ErrorMessage=[]
+        self.__separate_pd_items()
+        self.__fill_out_pax_dict()
+        self.__verified_all_sn()
+        return
+    
+    def GetLastCount(self,PdTextList=[]):
+        pattern = re.compile(r'\d+\.\s')
+        if len(PdTextList)==0:
+            sn_values = [int(item['sn'].strip()) for item in self.__pax_dict_in_list]
+            if len(sn_values) == 0:
+                return 0
+            else:
+                return max(sn_values)
+        else:
+            for line in reversed(PdTextList):
+                match=pattern.search(line)
+                if match:
+                    name_line = self.__split_first_line(line)
+                    return name_line[0]
+        return 0
+            
+    def __separate_pd_items(self):
+        pattern_1st_line=re.compile(r'\d+\.\s')
+        pattern_spaces = r'^ {22}'
+        key = 0
+        for line in self.__source_pd_list:
+            if len(line.strip()) == 0:
+                continue
+            if line == 'NIL':
+                break
+            match_1st_line=pattern_1st_line.search(line)
+            if match_1st_line:
+                key=int(line[:3])# the serial number without '.'
+                new_list=[line]
+                self.__pd_dict[key]=new_list
+                continue
+            else:
+                if re.match(pattern_spaces,line):
+                    if key==0:
+                        continue
+                    self.__pd_dict[key].append(line)
+                    continue
+        return
+    
+    def __fill_out_pax_dict(self):
+        for key in self.__pd_dict:
+            pd_split=self.__split_first_line(self.__pd_dict[key][0])
+            new_item = {}  # Create a new dictionary for each item
+            new_item['sn'] = pd_split[0]
+            new_item['name'] = pd_split[1]
+            new_item['bn'] = pd_split[2]
+            new_item['seat'] = [pd_split[3]]
+            new_item['cls'] = pd_split[4]
+            for line in self.__pd_dict[key][1:]:
+                seat2 = self.__capture_2nd_seat(line)
+                if seat2 is not None:
+                    new_item['seat'].append(seat2)
+            self.__pax_dict_in_list.append(new_item)
+        return
 
-    def GetConflict(self,pd_text,bol_name=False,bol_seat=False):
-        self.__Pd_item_list.clear()
-        self.__Pd_text.clear()
-        self.NameMessage.clear()
-        self.SeatMessage.clear()
-        self.ErrorMessage.clear()
-        self.DebugMessage.clear()
-        self.bol_name=False
-        self.bol_seat=False
-        self.__Pd_text = self.__FirstLinePd(pd_text)
-        self.__FillOutContents()
-        if bol_name:
-            self.bol_name=self.__check_duplicate_names()
-        if bol_seat:
-            self.bol_seat=self.__check_duplicate_seats()
-
-    def __SeprateFirstLine(self, first_line_text):
+    def __split_first_line(self, first_line_text):
         try:
             sn=first_line_text[0:3]
             pax_name=first_line_text[6:21]
@@ -36,72 +81,81 @@ class PD():
             pax_seat=first_line_text[33:37]
             pax_seat=pax_seat.rstrip()
             pax_cls=first_line_text[40]
-            self.DebugMessage.append(sn+' | '+pax_name+' | '+bn+' | '+pax_seat+' | '+pax_cls)
             return sn,pax_name,bn,pax_seat,pax_cls
         except:
             self.ErrorMessage.append("An Error occured of "+first_line_text)
         return False
-    
-    def __FirstLinePd(self,PdTextList):
-        regularity_pd=[]
-        pattern=re.compile(r'^\s*\d+\.\s')
-        for line in PdTextList:
-            if line[0] != '>' and re.match(pattern,line):
-                regularity_pd.append(line)
-        return regularity_pd
-    
-    def __FillOutContents(self):
-        for pd in self.__Pd_text:
-            if pd.find('.') != -1:
-                pd_split=self.__SeprateFirstLine(pd)
-                new_item = {}  # Create a new dictionary for each item
-                new_item['sn'] = pd_split[0]
-                new_item['name'] = pd_split[1]
-                new_item['bn'] = pd_split[2]
-                new_item['seat'] = pd_split[3]
-                new_item['cls'] = pd_split[4]
-                self.__Pd_item_list.append(new_item)
 
-    def __check_duplicate_names(self):
-        for item in self.__Pd_item_list:
-            sn,name='',''
-            for other in self.__Pd_item_list:
-                if item['name'] == other['name'] and item['sn'] != other['sn']:
-                    sn=item['sn']
-                    name=item['name']
-                    self.NameMessage.append('PR'+sn+'PD name is '+name)
-                    break
-        return len(self.NameMessage) != 0
+    def __capture_2nd_seat(self,line):
+        pattern=re.compile(r'\s\d{2}[A-L]\s')
+        match=pattern.search(line)
+        if match:
+            return line[match.start()+1:match.end()-1]
+        
+    def GetSameNames(self):
+        name_messages=[]
+        # Dictionary to track names and their corresponding 'sn' values
+        name_to_sn = {}
+        # Loop through each item in the list
+        for item in self.__pax_dict_in_list:
+            name = item['name']
+            sn = item['sn'].strip()  # Strip any leading/trailing whitespace from 'sn'
+            if name in name_to_sn:
+                name_to_sn[name].append(sn)
+            else:
+                name_to_sn[name] = [sn]
+        # Find names with multiple 'sn' values and return them
+        duplicates = {name: sns for name, sns in name_to_sn.items() if len(sns) > 1}
+        for name, sns in duplicates.items():
+            name_messages.append(f"Name: {name}, PRPD#: {sns}")
+        if not len(name_messages):
+            name_messages.append('None of Duplicate Names.')
+        return name_messages
+        
 
+    def GetSameSeats(self):
+        seat_messages=[]
+        # Dictionary to track seats and their corresponding 'sn' values
+        seat_to_sn = {}
+        # Loop through each item in the list
+        for item in self.__pax_dict_in_list:
+            sn = item['sn'].strip()  # Strip any leading/trailing whitespace from 'sn'
+            for seat in item['seat']:
+                if seat in seat_to_sn:
+                    seat_to_sn[seat].append(sn)
+                else:
+                    seat_to_sn[seat] = [sn]
+        # Find seats with multiple 'sn' values and return them
+        duplicates = {seat: sns for seat, sns in seat_to_sn.items() if len(sns) > 1}
+        for seat, sns in duplicates.items():
+            seat_messages.append(f"Seat: {seat}, PRPD#: {sns}")
+        if not len(seat_messages):
+            seat_messages.append('None of Duplicate Seats.')
+        return seat_messages
+    
+    def __verified_all_sn(self):
+        # Extract 'sn' values, strip whitespace, and convert to integers
+        sn_values = [int(item['sn'].strip()) for item in self.__pax_dict_in_list]
+        if len(sn_values)==0:
+            return
+        # Sort the 'sn' values
+        sn_values.sort()
+        # Find the missing 'sn' values
+        missing_sn = []
+        for i in range(1, sn_values[-1]):
+            if i not in sn_values:
+                missing_sn.append(i)
+        if len(missing_sn):
+            self.ErrorMessage.append(r"Missing the following PRPD#:\n")
+            self.ErrorMessage.append(missing_sn)
+        return
 
-    def __check_duplicate_seats(self):
-        for item in self.__Pd_item_list:
-            if len(item['seat']) == 0:
-                continue
-            sn,seat='',''
-            for other in self.__Pd_item_list:
-                if item['seat'] == other['seat'] and item['name'] != other['name']:
-                    sn=item['sn']
-                    seat=item['seat']
-                    self.SeatMessage.append('PR'+sn+'PD seat assigned '+seat)
-                    break
-        return len(self.SeatMessage) != 0
-    
-    def GetLastCount(self,PdTextList):
-        pattern = re.compile(r'\d+\.\s')
-        for line in reversed(PdTextList):
-            match=pattern.search(line)
-            if match:
-                name_line = self.__SeprateFirstLine(line)
-                return name_line[0]
-        return 0
-            
-    
-import functions
 def main():
-    pdcontent=functions.ReadTxt2List(r'C:\Users\gostn\OneDrive\桌面\eterm\pd_all.txt')
-    pd=PD()
-    #pd.run(pdcontent)
+    pdcontent=functions.ReadTxt2List(r'C:\Users\gostn\OneDrive\桌面\eterm\pd_sample.txt')
+    pd=PD(pdcontent)
+    print(pd.GetSameNames())
+    print(pd.GetSameSeats())
     print(pd.GetLastCount(pdcontent))
+    print(pd.ErrorMessage)
 if __name__ == "__main__":
     main()
