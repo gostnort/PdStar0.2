@@ -172,9 +172,14 @@ class MainWindow(QMainWindow):
 
     def poke_logic(self, Debug):
         command_pending = float(self.pending_time_text.text())
-        GetData = GetBriefingJson(self.resource_path, self.flight_inout.text())
-        # RequestData(GetData, command_pending, Debug)
-        GetData.ProcessAndSave()
+        flight_info=self.flight_inout.text()
+        pd_command='PD'+self.pd_text.text()
+        if len(flight_info) != 0:
+            GetData = GetBriefingJson(self.resource_path, flight_info)
+            # RequestData(GetData, command_pending, Debug)
+            GetData.ProcessAndSave()
+        if len(pd_command) != 0:
+            pass
         
 def main():
     parser = argparse.ArgumentParser(description="PD start")
