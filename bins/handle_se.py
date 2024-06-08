@@ -1,4 +1,4 @@
-from functions import ReadTxt2List, String2List
+from bins.functions import ReadTxt2List, String2List
 import re
 
 class SE:

@@ -151,9 +151,9 @@ class SY():
             return 0
         
 
-import functions
+from bins.functions import ReadTxt2String
 def main():
-    sy_content=functions.ReadTxt2String(r'C:\Users\gostn\OneDrive\桌面\eterm\sy_transit.txt')
+    sy_content=ReadTxt2String(r'C:\Users\gostn\OneDrive\桌面\eterm\sy_transit.txt')
     sy=SY(sy_content,'IAD')
     print(sy.flight,sy.flight_date,sy.ac_reg,sy.ac_type,sy.bdt,sy.gate,sy.seat_configuration,sy.leg,sy.ret_minus_id)
 if __name__ == "__main__":

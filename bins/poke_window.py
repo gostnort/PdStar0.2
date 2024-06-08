@@ -1,15 +1,15 @@
 import json
 import threading
-import keyboard_simulate
+from bins.keyboard_simulate import SendCommand,SendString,ClickListener
 import argparse
-from handle_sy import SY
-from handle_se import SE
-from handle_pd import PD
-import functions
+from bins.handle_sy import SY
+from bins.handle_se import SE
+from bins.handle_pd import PD
+from bins.functions import ReadTxt2List
 import re
-from handle_bnd import BND
-from handle_av import AV
-from write_xlxs import FillOut
+from bins.handle_bnd import BND
+from bins.handle_av import AV
+from bins.write_xlxs import FillOut
 from datetime import datetime
 
 '''
@@ -73,11 +73,11 @@ class RequestData():
     def run(self):
         event1=threading.Event()
         event2=threading.Event()
-        listener_start=keyboard_simulate.ClickListener(event1)
+        listener_start=ClickListener(event1)
         listener_start.start()
         # Wait for the first click event
         event1.wait()
-        listener_loop = keyboard_simulate.ClickListener(event2)
+        listener_loop = ClickListener(event2)
         listener_loop.start()
         print(listener_loop.click_position)
         bol_stop_listerner = False
@@ -98,31 +98,31 @@ class RequestData():
                                 bol_stop_pages = True
                         if bol_stop_pages:
                             if self.bol_debug:
-                                keyboard_simulate.SendCommand(self.commands['arrival_section'][0][key],
+                                SendCommand(self.commands['arrival_section'][0][key],
                                                             self.command_pending_time)
-                                keyboard_simulate.SendString(self.COMMAND_END_MARK)
+                                SendString(self.COMMAND_END_MARK)
                             else:
-                                keyboard_simulate.SendCommand(self.commands['arrival_section'][0][key],
+                                SendCommand(self.commands['arrival_section'][0][key],
                                                             self.command_pending_time,True)
-                                keyboard_simulate.SendString(self.COMMAND_END_MARK,True,False)
+                                SendString(self.COMMAND_END_MARK,True,False)
                         else:
-                            keyboard_simulate.SendCommand(self.commands['arrival_section'][0][key],
+                            SendCommand(self.commands['arrival_section'][0][key],
                                                         self.command_pending_time,False)
-                            keyboard_simulate.SendCommand('PF1'
+                            SendCommand('PF1'
                                                         ,self.command_pending_time)
-                            keyboard_simulate.SendString(self.COMMAND_END_MARK,
+                            SendString(self.COMMAND_END_MARK,
                                                         0,
                                                         True,
                                                         False)
             else:
                 return True
         if self.bol_debug:
-            keyboard_simulate.SendString(self.ARRIVAL_END_MARK,
+            SendString(self.ARRIVAL_END_MARK,
                                             0,
                                             False,
                                             True)
         else:
-            keyboard_simulate.SendString(self.ARRIVAL_END_MARK,
+            SendString(self.ARRIVAL_END_MARK,
                                             0,
                                             True,
                                             True)
@@ -138,31 +138,31 @@ class RequestData():
                                 bol_stop_pages = True
                         if bol_stop_pages:
                             if self.bol_debug:
-                                keyboard_simulate.SendCommand(self.commands['departure_section'][0][key],
+                                SendCommand(self.commands['departure_section'][0][key],
                                                             self.command_pending_time)
-                                keyboard_simulate.SendString(self.COMMAND_END_MARK)
+                                SendString(self.COMMAND_END_MARK)
                             else:
-                                keyboard_simulate.SendCommand(self.commands['departure_section'][0][key],
+                                SendCommand(self.commands['departure_section'][0][key],
                                                             self.command_pending_time,True)
-                                keyboard_simulate.SendString(self.COMMAND_END_MARK,True,False)
+                                SendString(self.COMMAND_END_MARK,True,False)
                         else:
-                            keyboard_simulate.SendCommand(self.commands['departure_section'][0][key],
+                            SendCommand(self.commands['departure_section'][0][key],
                                                         0.3,False)
-                            keyboard_simulate.SendCommand('PL1'
+                            SendCommand('PL1'
                                                         ,self.command_pending_time,True)
-                            keyboard_simulate.SendString(self.COMMAND_END_MARK,
+                            SendString(self.COMMAND_END_MARK,
                                                         0,
                                                         True,
                                                         True)
                     else:
                         return True
         if self.bol_debug:
-            keyboard_simulate.SendString(self.DEPARTURE_END_MARK,
+            SendString(self.DEPARTURE_END_MARK,
                                             0,
                                             False,
                                             True)
         else:
-            keyboard_simulate.SendString(self.DEPARTURE_END_MARK,
+            SendString(self.DEPARTURE_END_MARK,
                                             0,
                                             True,
                                             True)
@@ -173,7 +173,7 @@ class ProcessData():
     ARRIVAL_MARK='===ARRIVAL_END=== '
     def __init__(self,BriefCommands,CommandsFilePath,):
         super().__init__()
-        txt_list = functions.ReadTxt2List(CommandsFilePath)
+        txt_list = ReadTxt2List(CommandsFilePath)
         self.commands=BriefCommands
         self.arrival_set=[]
         self.departure_set=[]
@@ -303,7 +303,7 @@ def main():
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
     GetData=GetBriefingJson(r'C:\Users\gostn\我的Github库\PdStar0.2\resources',r'818/818/01JUN/01JUN/IAD')
-    #RequestData(briefing_commands, 0.5,args.debug)
+    #RequestData(GetData, 0.5,args.debug)
     GetData.ProcessAndSave()
 if __name__ == "__main__":
     main()

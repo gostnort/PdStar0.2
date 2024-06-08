@@ -1,39 +1,38 @@
 import os
+import sys
 import argparse
 from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog
-from PySide6.QtWidgets import QLineEdit, QVBoxLayout, QWidget, QTextEdit
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QRadioButton, QCheckBox
+from PySide6.QtWidgets import QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel
 from PySide6.QtWidgets import QFrame, QMessageBox
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt
-from bins.handle_pd import pd_properties
-import bins.functions as functions
-import bins.keyboard_simulate as keyboard_simulate
-import threading
+from bins.handle_pd import PD
+from bins.functions import ReadTxt2List
 import json
+from bins.poke_window import GetBriefingJson, RequestData
 
 class MainWindow(QMainWindow):
-    __BUTTON_WIDTH=100
-
     def __init__(self, args):
         super().__init__()
-        venv_path=os.path.dirname(os.getcwd())
-        '''
-        if(r'.venv' not in venv_path):
+
+        venv_path = os.path.dirname(os.getcwd())
+        if '.venv' not in venv_path:
             print(venv_path)
             print('Run this project in virtual environment folder \'.venv\'')
-            QMessageBox.warning(self,'Warning', 
-                                venv_path + "\nThis project msut run in the virtual environment that named the folder \'.venv\' \nStart the python.exe in \'Scripts\' folder calling of this main_window.")
+            QMessageBox.warning(self, 'Warning',
+                                venv_path + "\nThis project must run in the virtual environment named '.venv'. \nStart the python.exe in the 'Scripts' folder to call this main_window.")
             return
-            '''
-        root_path=os.getcwd()
-        resource_path = root_path + r'\resources'
 
-        with open(resource_path + r"\main_window.json", "r") as file:
+        root_path = os.path.dirname(os.path.dirname(os.getcwd()))  # Get the grandparent folder from the .venv/scripts/.
+        self.resource_path = os.path.join(root_path, 'resources')
+        
+        with open(os.path.join(self.resource_path, "main_window.json"), "r") as file:
             config = json.load(file)
+        
         self.setWindowTitle(config['window_title'])
-        self.resize(config['main_window_width'], config['main_window_height'])  # Set initial window size to 600x400 pixels
-        self.setMinimumSize(config['main_window_min_width'], config['main_window_min_height'])  # Set minimum window size to 200x200 pixels
+        self.resize(config['main_window_width'], config['main_window_height'])  # Set initial window size
+        self.setMinimumSize(config['main_window_min_width'], config['main_window_min_height'])  # Set minimum window size
         
         # Set window icon
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -44,28 +43,18 @@ class MainWindow(QMainWindow):
         app_icon = QIcon(icon_path)
         self.setWindowIcon(app_icon)
 
-        # Create a label and some radio buttons.
-        self.radio_label = QLabel("Select a following function:")
-        self.pd_radio = QRadioButton("PD")
-        self.pd_text=QLineEdit("*")
+        # Create labels and input fields
+        self.flight_label = QLabel("Inbound / Outbound / In_Date / Out_Date / Inbound_Departure:  ")
+        self.pd_label = QLabel('PD')
+        self.pd_text = QLineEdit('')
         self.pd_text.setStyleSheet("border: none;")
-        self.pending_time_text=QLineEdit(str(config['pending_time_value']))
-        self.pending_time_text.setFixedWidth(config['QLineEdit_short_width'])
+        self.pending_time_text = QLineEdit(str(config['pending_time_value']))
+        self.pending_time_text.setFixedWidth(25)
         self.pending_time_text.setStyleSheet("QLineEdit { background-color: #CCCCCC; color: #444444; border:none;}")
-        self.dup_name_check=QCheckBox('Dup Names')
-        self.dup_seats_check=QCheckBox('Dup Seats')
-        self.default_radio = QRadioButton("Default")
-        self.flight_inout=QLineEdit("984")
-        self.flight_inout.setFixedWidth(config['QLineEdit_short_width'])
+        self.flight_inout = QLineEdit(self)
+        self.flight_inout.setText('983/984/01JUN/02JUN/PEK')
+        self.flight_inout.setFixedWidth(config['QLineEdit_long_width'])
         self.flight_inout.setStyleSheet("border: none;")
-        self.pd_radio.setChecked(True)
-        self.dup_name_check.setChecked(True)
-        self.pn_times_label = QLabel('Times of \'>PN1⏎\'')
-        #self.pn_times_label.setFixedWidth(100)
-        self.pn_times_edit = QLineEdit()
-        self.pn_times_edit.setText(str(config['pn_times_value']))
-        self.pn_times_edit.setFixedWidth(config['QLineEdit_short_width'])
-        self.pn_times_edit.setStyleSheet("border: none;")
         
         # Create button and QLineEdit for file path
         self.file_button = QPushButton("Open...")
@@ -74,58 +63,58 @@ class MainWindow(QMainWindow):
         self.file_path_edit = QLineEdit()
         self.file_path_edit.setReadOnly(True)
         self.file_path_edit.setStyleSheet("border: none;")
-        
-        # Create QTextEdit for result output
-        self.result_text_edit = QTextEdit()
-
-        # Set font size of result_text_edit to 11pt
-        font = self.result_text_edit.font()
-        font.setPointSize(11)# default is 10pt.
-        self.result_text_edit.setFont(font)
+        self.file_path_edit.setFixedWidth(config['QLineEdit_long_width'])
 
         # Create "Run" button
         self.run_button = QPushButton("Run")
-        self.run_button.setFixedWidth(self.__BUTTON_WIDTH)  # Set width to 100 pixels
-        self.run_button.clicked.connect(lambda: self.run_logic(args))
+        self.run_button.setFixedWidth(config['QLineEdit_short_width'])
+        self.run_button.clicked.connect(lambda: self.run_logic())
         
-        # Create 'Pick' button.
-        self.pick_button = QPushButton('Poke eTerm')
-        self.pick_button.setFixedWidth(self.__BUTTON_WIDTH)
-        self.pick_button.clicked.connect(lambda:self.pick_logic())
+        # Create 'Poke' button
+        self.poke_button = QPushButton('Poke a Window')
+        self.poke_button.setFixedWidth(config['QLineEdit_short_width'])
+        self.poke_button.clicked.connect(lambda: self.poke_logic(args))
 
         # Create a QHBoxLayout for the rows
         first_row_layout = QHBoxLayout()
-        first_row_layout.addWidget(self.radio_label)
-        
+        first_row_left = QHBoxLayout()
+        first_row_left.addWidget(self.flight_label)
+        first_row_left.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        first_row_left.addStretch()
+        first_row_right = QHBoxLayout()
+        first_row_right.addWidget(self.pending_time_text)
+        first_row_right.setAlignment(Qt.AlignmentFlag.AlignRight)
+        first_row_layout.addLayout(first_row_left)
+        first_row_layout.addLayout(first_row_right)
+
         second_row_layout = QHBoxLayout()
-        second_row_layout.addWidget(self.pd_radio)
-        second_row_layout.addWidget(self.pd_text)
-        second_row_layout.addWidget(self.pn_times_label)
-        second_row_layout.addWidget(self.pn_times_edit)
-        
+        second_row_layout.addWidget(self.flight_inout)
+        second_row_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                        
         third_row_layout = QHBoxLayout()      
-        third_row_left=QHBoxLayout()
-        third_row_left.addWidget(self.default_radio)
-        third_row_left.addWidget(self.flight_inout)
-        third_row_left.addStretch()# Add stretch to push widgets to the left
+        third_row_left = QHBoxLayout()
+        third_row_left.addWidget(self.pd_label)
+        third_row_left.addWidget(self.pd_text)
+        third_row_left.addStretch()  # Add stretch to push widgets to the left
         third_row_left.setAlignment(Qt.AlignmentFlag.AlignLeft)
         third_row_layout.addLayout(third_row_left)
 
-        third_row_right=QHBoxLayout()
-        third_row_right.addWidget(self.pending_time_text)
-        third_row_right.addWidget(self.pick_button)
+        third_row_right = QHBoxLayout()
+        third_row_right.addWidget(self.poke_button)
         third_row_right.setAlignment(Qt.AlignmentFlag.AlignRight)
         third_row_layout.addLayout(third_row_right)
 
         forth_row_layout = QHBoxLayout()
-        forth_row_layout.addWidget(self.file_button)
-        forth_row_layout.addWidget(self.file_path_edit)
-
-        fifth_row_layout=QHBoxLayout()
-        fifth_row_layout.addWidget(self.dup_name_check)
-        fifth_row_layout.addWidget(self.dup_seats_check)
-        fifth_row_layout.addWidget(self.run_button)
-        fifth_row_layout.addStretch()
+        forth_row_left = QHBoxLayout()
+        forth_row_left.addWidget(self.file_path_edit)
+        forth_row_left.addWidget(self.file_button)
+        forth_row_left.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        forth_row_left.addStretch()
+        forth_row_layout.addLayout(forth_row_left)
+        forth_row_right = QHBoxLayout()
+        forth_row_right.addWidget(self.run_button)
+        forth_row_right.setAlignment(Qt.AlignmentFlag.AlignRight)
+        forth_row_layout.addLayout(forth_row_right)
 
         # Create a QVBoxLayout for the main layout
         main_layout = QVBoxLayout()
@@ -137,74 +126,55 @@ class MainWindow(QMainWindow):
         separator.setFrameShadow(QFrame.Sunken)
         main_layout.addWidget(separator)
         main_layout.addLayout(forth_row_layout)
-        main_layout.addLayout(fifth_row_layout)
-        main_layout.addWidget(self.result_text_edit)
         
         # Create a central widget to hold the main layout
         central_widget = QWidget()
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
+        self.setStyleSheet('''
+                            QMainWindow {
+                            background-color: #CCCCCC;
+                           }''')
+        
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.flight_inout.setFocus()
+        self.flight_inout.selectAll()
     
     def open_file_dialog(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*);;Text Files (*.txt)")
         if file_path:
             self.file_path_edit.setText(file_path)
 
-    def run_logic(self,args):
-        self.result_text_edit.clear()
-        if args.debug:
-            self.result_text_edit.append("Debug mode enabled")
+    def run_logic(self):
         file_path = self.file_path_edit.text()
-        pd_text=functions.ReadTxt2List(file_path)
-        pd=pd_properties()
-        pd.GetConflict(pd_text,self.dup_name_check.isChecked(),self.dup_seats_check.isChecked())
+        pd_text = ReadTxt2List(file_path)
+        pd = PD(pd_text)
+        name_list = pd.GetSameNames()
+        seat_list = pd.GetSameSeats()
+        msg_box = QMessageBox()
+        msg_box.setWindowTitle('PD Messages')
+        msg_text = ''
         if len(pd.ErrorMessage) != 0:
+            msg_text += 'Messages:' + '\n'
             for line in pd.ErrorMessage:
-                self.result_text_edit.append(line)
-        if args.debug:
-            for line in pd.DebugMessage:
-                self.result_text_edit.append(line)
-        if self.dup_name_check.isChecked():
-            if pd.bol_name:
-                for line in pd.NameMessage:
-                    self.result_text_edit.append(line)
-        if self.dup_seats_check.isChecked():
-            if pd.bol_seat:
-                for line in pd.SeatMessage:
-                    self.result_text_edit.append(line)
+                msg_text += line + '\n'
+        if len(name_list) != 0:
+            msg_text += 'Dup Names:' + '\n'
+            for line in name_list:
+                msg_text += line + '\n'
+        if len(seat_list) != 0:
+            msg_text += 'Dup Seats:' + '\n'
+            for line in seat_list:
+                msg_text += line + '\n'
+        msg_box.setText(msg_text)
+        msg_box.exec()
 
-    def pick_logic(self):
-        command_pending=float(self.pending_time_text.text())
-        try:
-            times=int(self.pn_times_edit.text())+1
-        except ValueError:
-            return
-        if self.pd_radio.isChecked:
-            event1=threading.Event()
-            event2=threading.Event()
-            listener_start=keyboard_simulate.ClickListener(event1)
-            listener_start.start()
-            # Wait for the first click event
-            event1.wait()
-            command_string=('PD'+self.pd_text.text())
-            PD_thread=keyboard_simulate.SendKeys(command_string,command_pending)
-            PD_thread.start()
-            PD_thread.join()
-            #PD_thread.send_print_keys()
-            listener_loop = keyboard_simulate.ClickListener(event2)
-            listener_loop.start()
-            for i in range(1,times):
-                if listener_loop.click_position == None:
-                    PN1_thread=keyboard_simulate.SendKeys('PN1',command_pending)
-                    PN1_thread.start()
-                    PN1_thread.join()
-                    #PN1_thread.send_print_keys()
-                else:
-                    event2.wait()
-                    listener_loop.join()
-                    listener_loop.event.clear()
-                    break
-            
+    def poke_logic(self, Debug):
+        command_pending = float(self.pending_time_text.text())
+        GetData = GetBriefingJson(self.resource_path, self.flight_inout.text())
+        # RequestData(GetData, command_pending, Debug)
+        GetData.ProcessAndSave()
         
 def main():
     parser = argparse.ArgumentParser(description="PD start")
@@ -215,7 +185,7 @@ def main():
     app = QApplication([])
     window = MainWindow(args)
     window.show()
-    app.exec()
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
     main()

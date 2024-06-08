@@ -1,11 +1,12 @@
 import re
-import functions
+from bins.functions import String2List
+
 class PD():
     def __init__(self,PdList):
         super().__init__()
         self.__source_pd_list={}
         if isinstance(PdList,str):
-            self.__source_pd_list=functions.String2List(PdList)
+            self.__source_pd_list=String2List(PdList)
         else:
             self.__source_pd_list=PdList
         self.__pd_dict={}
@@ -99,6 +100,8 @@ class PD():
         # Loop through each item in the list
         for item in self.__pax_dict_in_list:
             name = item['name']
+            if 'ZZZZ' in name:
+                continue
             sn = item['sn'].strip()  # Strip any leading/trailing whitespace from 'sn'
             if name in name_to_sn:
                 name_to_sn[name].append(sn)
@@ -150,8 +153,9 @@ class PD():
             self.ErrorMessage.append(missing_sn)
         return
 
+from bins.functions import ReadTxt2List
 def main():
-    pdcontent=functions.ReadTxt2List(r'C:\Users\gostn\OneDrive\桌面\eterm\pd_sample.txt')
+    pdcontent=ReadTxt2List(r'C:\Users\gostn\OneDrive\桌面\eterm\pd_sample.txt')
     pd=PD(pdcontent)
     print(pd.GetSameNames())
     print(pd.GetSameSeats())
