@@ -8,9 +8,9 @@ from PySide6.QtWidgets import QFrame, QMessageBox
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt
 from bins.handle_pd import PD
-from bins.functions import ReadTxt2List
+from bins.txt_operation import ReadTxt2List
 import json
-from bins.poke_window import GetBriefingJson, RequestData
+from bins.poke_window import RequestData,ProcessData
 
 class MainWindow(QMainWindow):
     def __init__(self, args):
@@ -174,10 +174,9 @@ class MainWindow(QMainWindow):
         command_pending = float(self.pending_time_text.text())
         flight_info=self.flight_inout.text()
         pd_command='PD'+self.pd_text.text()
-        if len(flight_info) != 0:
-            GetData = GetBriefingJson(self.resource_path, flight_info)
-            # RequestData(GetData, command_pending, Debug)
-            GetData.ProcessAndSave()
+        if len(flight_info.split('/')) > 3:
+            request_data=RequestData(self.resource_path, flight_info, command_pending, Debug)
+            ProcessData(request_data.Commands)
         if len(pd_command) != 0:
             pass
         

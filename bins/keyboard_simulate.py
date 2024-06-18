@@ -3,13 +3,15 @@ from pynput.mouse import Listener
 from pynput.mouse import Controller as mouse_controller
 from pynput.keyboard import Controller as key_controller
 from pynput.keyboard import Key
-import bins.input_enter as input_enter
+from pynput.mouse import Button
+import input_enter as input_enter
 import time
 class ClickListener(threading.Thread):
     def __init__(self,event):
         super().__init__()
         self.click_position = None
         self.event = event
+        self.listener = Listener(on_click=self.on_click)
 
     def on_click(self, x, y, button, pressed):
         if pressed:
@@ -20,6 +22,13 @@ class ClickListener(threading.Thread):
     def run(self):
         with Listener(on_click=self.on_click) as listener:
             listener.join()
+
+    def stop(self):
+        self.listener.stop()
+
+    def left_click(self):
+        mouse_controller().click(Button.left,1)
+        return self.click_position
 
 class SendKeys(threading.Thread):
     def __init__(self):

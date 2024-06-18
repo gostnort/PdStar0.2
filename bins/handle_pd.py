@@ -1,5 +1,5 @@
 import re
-from bins.functions import String2List
+from txt_operation import String2List
 
 class PD():
     def __init__(self,PdList):
@@ -153,7 +153,7 @@ class PD():
             self.ErrorMessage.append(missing_sn)
         return
 
-from bins.functions import ReadTxt2List
+from txt_operation import ReadTxt2List
 def main():
     pdcontent=ReadTxt2List(r'C:\Users\gostn\OneDrive\桌面\eterm\pd_sample.txt')
     pd=PD(pdcontent)

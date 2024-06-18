@@ -1,5 +1,5 @@
 import re
-from bins.functions import String2List
+from txt_operation import String2List
 class AV():
     def __init__(self,AvContent):
         super().__init__()
@@ -19,7 +19,7 @@ class AV():
                     print('AV Class malfunction.')
                 break
 
-from bins.functions import ReadTxt2String
+from txt_operation import ReadTxt2String
 def main():
     content=ReadTxt2String(r'C:\Users\gostn\OneDrive\桌面\eterm\av.txt')
     av=AV(content)

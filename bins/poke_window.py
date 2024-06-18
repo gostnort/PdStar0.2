@@ -1,27 +1,27 @@
 import json
 import threading
-from bins.keyboard_simulate import SendCommand,SendString,ClickListener
+from keyboard_simulate import SendCommand,SendString,ClickListener
 import argparse
-from bins.handle_sy import SY
-from bins.handle_se import SE
-from bins.handle_pd import PD
-from bins.functions import ReadTxt2List
+from handle_sy import SY
+from handle_se import SE
+from handle_pd import PD
+from txt_operation import ReadTxt2List, AppendText
 import re
-from bins.handle_bnd import BND
-from bins.handle_av import AV
-from bins.write_xlxs import FillOut
+from handle_bnd import BND
+from handle_av import AV
+from write_xlxs import FillOut
 from datetime import datetime
 
 '''
 input:string,string,float,bol
-input example: 'c:\\users','983/984/01JUN/02JUN/PEK',0.7,True
+input example: 'c:\\users','983/984/01JUN/02JUN/PEK/B2045',0.7,True
 '''
 class GetBriefingJson():
-    def __init__(self, JsonFolder, FlightInfo):
+    def __init__(self, JsonFolder:str, FlightInfo:str):
         super().__init__()
         self.__josn_folder = JsonFolder
         with open(JsonFolder + r'\briefing_command.json','r') as file:
-            json_structure = json.load(file)
+            self.Json_structure = json.load(file)
         split_values = FlightInfo.split('/')
         # Assign the split values to respective variables
         arrival_flight_number = split_values[0]
@@ -29,19 +29,23 @@ class GetBriefingJson():
         arrival_flight_date = split_values[2]
         departure_flight_date = split_values[3]
         arrival = split_values[4]
-        values = {
+        try:
+            ac_reg = split_values[5]
+        except:
+            ac_reg = ''
+        self.Values = {
             "arrival_flight_number": arrival_flight_number,
             "arrival_date": arrival_flight_date,
             "arrival": arrival,
             "departure_flight_number":departure_flight_number,
             "departure_date":departure_flight_date,
-            "ac_reg":""
+            "ac_reg":ac_reg
         }
-        self.Commands = self.__fill_placeholders(json_structure,values)
+        self.Commands = self.Fill_placeholders(self.Json_structure,self.Values)
 
     
         # Function to replace placeholders
-    def __fill_placeholders(self, obj, values):
+    def Fill_placeholders(self, obj, values):
         if isinstance(obj, str):
             # Replace placeholders in the string
             for key, value in values.items():
@@ -49,25 +53,25 @@ class GetBriefingJson():
             return obj
         elif isinstance(obj, list):
             # Recursively handle lists
-            return [self.__fill_placeholders(item, values) for item in obj]
+            return [self.Fill_placeholders(item, values) for item in obj]
         elif isinstance(obj, dict):
             # Recursively handle dictionaries
-            return {key: self.__fill_placeholders(value, values) for key, value in obj.items()}
+            return {key: self.Fill_placeholders(value, values) for key, value in obj.items()}
         return obj
-    
-    def ProcessAndSave(self):
-        pd=ProcessData(self.Commands,r'C:\Users\gostn\OneDrive\桌面\eterm\qqqqq.txt')
-        pd.WiteXlsx(self.__josn_folder)
+
 
 class RequestData():
     COMMAND_END_MARK = '\n===END===\n'
     ARRIVAL_END_MARK = '\n===ARRIVAL_END===\n'
     DEPARTURE_END_MARK = '\n===DEPARTURE_END===\n'
 
-    def __init__(self,BriefCommands,CommandPending, Debug=False):
-        self.commands=BriefCommands
-        self.bol_debug = Debug
-        self.command_pending_time=CommandPending
+    def __init__(self,JsonPath,FlightInfo,CommandPending, Debug=False):
+        super().__init__()
+        self.__json_path = JsonPath
+        self.__config=GetBriefingJson(JsonPath,FlightInfo)
+        self.Commands = self.__config.Commands
+        self.__bol_debug = Debug
+        self.__command_pending_time=CommandPending
         self.run()
 
     def run(self):
@@ -79,101 +83,123 @@ class RequestData():
         event1.wait()
         listener_loop = ClickListener(event2)
         listener_loop.start()
-        print(listener_loop.click_position)
         bol_stop_listerner = False
         bol_stop_listerner = self.__send_arrival_commands(listener_loop)
+        pd=ProcessData(self.Commands)
+        pd.Get_arrival_data()
+        # Add the ac_reg to reset the self.Commands.
+        ac_reg=pd.arrival_ac_reg
+        self.__config.Values['ac_reg']=ac_reg
+        self.Commands=self.__config.Fill_placeholders(self.__config.Json_structure,self.__config.Values)
         if not bol_stop_listerner:
             bol_stop_listerner = self.__send_departure_commands(listener_loop)
-        event2.wait()
-        print(listener_loop.click_position)
+        pd.Get_departure_data()
+        pd.WiteXlsx(self.__json_path)
+        listener_loop.left_click()
+        listener_loop.stop()
         listener_loop.join()
+        event2.wait()
         listener_loop.event.clear()
 
     def __send_arrival_commands(self,listener):
-        for key in self.commands['arrival_section'][0]:
+        for key in self.Commands['arrival_section'][0]:
             if listener.click_position == None:
                         bol_stop_pages = False
-                        for stop_key in self.commands['stop_turn_page']:
+                        for stop_key in self.Commands['stop_turn_page']:
                             if stop_key == key:
                                 bol_stop_pages = True
                         if bol_stop_pages:
-                            if self.bol_debug:
-                                SendCommand(self.commands['arrival_section'][0][key],
-                                                            self.command_pending_time)
-                                SendString(self.COMMAND_END_MARK)
+                            if self.__bol_debug:
+                                SendCommand(self.Commands['arrival_section'][0][key],
+                                            self.__command_pending_time,
+                                            False,False)
+                                SendString(self.COMMAND_END_MARK,
+                                           False,False)
                             else:
-                                SendCommand(self.commands['arrival_section'][0][key],
-                                                            self.command_pending_time,True)
-                                SendString(self.COMMAND_END_MARK,True,False)
-                        else:
-                            SendCommand(self.commands['arrival_section'][0][key],
-                                                        self.command_pending_time,False)
-                            SendCommand('PF1'
-                                                        ,self.command_pending_time)
-                            SendString(self.COMMAND_END_MARK,
-                                                        0,
-                                                        True,
-                                                        False)
-            else:
-                return True
-        if self.bol_debug:
-            SendString(self.ARRIVAL_END_MARK,
-                                            0,
-                                            False,
+                                SendCommand(self.Commands['arrival_section'][0][key],
+                                            self.__command_pending_time,
                                             True)
-        else:
-            SendString(self.ARRIVAL_END_MARK,
+                                SendString(self.COMMAND_END_MARK,
+                                           True,
+                                           False)
+                        else:
+                            if self.__bol_debug:
+                                SendCommand(self.Commands['arrival_section'][0][key],
+                                            self.__command_pending_time,
+                                            False,False)
+                                SendCommand('PF1',
+                                            self.__command_pending_time,
+                                            False,False)
+                                SendString(self.COMMAND_END_MARK,
+                                            0,
+                                            False,False)
+                            else:
+                                SendCommand(self.Commands['arrival_section'][0][key],
+                                            self.__command_pending_time,
+                                            False)
+                                SendCommand('PF1',
+                                            self.__command_pending_time)
+                                SendString(self.COMMAND_END_MARK,
                                             0,
                                             True,
-                                            True)
+                                            False)
+            else:
+                return True
+        AppendText(self.Commands['default_path'],
+                   self.ARRIVAL_END_MARK)
         return False
         
 
     def __send_departure_commands(self,listener):
-        for key in self.commands['departure_section'][0]:
+        for key in self.Commands['departure_section'][0]:
                     if listener.click_position == None:
                         bol_stop_pages = False
-                        for stop_key in self.commands['stop_turn_page']:
+                        for stop_key in self.Commands['stop_turn_page']:
                             if stop_key == key:
                                 bol_stop_pages = True
                         if bol_stop_pages:
-                            if self.bol_debug:
-                                SendCommand(self.commands['departure_section'][0][key],
-                                                            self.command_pending_time)
-                                SendString(self.COMMAND_END_MARK)
+                            if self.__bol_debug:
+                                SendCommand(self.Commands['departure_section'][0][key],
+                                            self.__command_pending_time,False,False)
+                                SendString(self.COMMAND_END_MARK,False,False)
                             else:
-                                SendCommand(self.commands['departure_section'][0][key],
-                                                            self.command_pending_time,True)
-                                SendString(self.COMMAND_END_MARK,True,False)
-                        else:
-                            SendCommand(self.commands['departure_section'][0][key],
-                                                        0.3,False)
-                            SendCommand('PL1'
-                                                        ,self.command_pending_time,True)
-                            SendString(self.COMMAND_END_MARK,
-                                                        0,
-                                                        True,
-                                                        True)
-                    else:
-                        return True
-        if self.bol_debug:
-            SendString(self.DEPARTURE_END_MARK,
-                                            0,
-                                            False,
+                                SendCommand(self.Commands['departure_section'][0][key],
+                                            self.__command_pending_time,
                                             True)
-        else:
-            SendString(self.DEPARTURE_END_MARK,
+                                SendString(self.COMMAND_END_MARK,
+                                           True,
+                                           False)
+                        else:
+                            if self.__bol_debug:
+                                SendCommand(self.Commands['departure_section'][0][key],
+                                            self.__command_pending_time,
+                                            False,False)
+                                SendCommand('PL1',self.__command_pending_time,
+                                            False,False)
+                                SendString(self.COMMAND_END_MARK,
+                                            0,
+                                            False,False)
+                            else:   
+                                SendCommand(self.Commands['departure_section'][0][key],
+                                            self.__command_pending_time,
+                                            False)
+                                SendCommand('PL1',self.__command_pending_time,True)
+                                SendString(self.COMMAND_END_MARK,
                                             0,
                                             True,
                                             True)
+                    else:
+                        return True
+        AppendText(self.Commands['default_path'],
+                   self.DEPARTURE_END_MARK)
         return False
 
 class ProcessData():
     END_MARK = '===END==='
     ARRIVAL_MARK='===ARRIVAL_END=== '
-    def __init__(self,BriefCommands,CommandsFilePath,):
+    def __init__(self,BriefCommands):
         super().__init__()
-        txt_list = ReadTxt2List(CommandsFilePath)
+        txt_list = ReadTxt2List(BriefCommands['default_path'])
         self.commands=BriefCommands
         self.arrival_set=[]
         self.departure_set=[]
@@ -206,10 +232,8 @@ class ProcessData():
         self.departure_gate=''
         self.special={}
         self.comment={}
-        self.__get_arrival_data() #It would clear data after processing.
-        self.__get_departure_data()
 
-    def __get_arrival_data(self):
+    def Get_arrival_data(self):
         for index,command in enumerate(self.arrival_set):
             if command.find('SY:') != -1:
                 my_sy=SY(command,self.commands['arrival'])
@@ -231,7 +255,7 @@ class ProcessData():
                 self.arrival_set[index] = ''
                 continue
         
-    def __get_departure_data(self):
+    def Get_departure_data(self):
         for command in self.departure_set:
             if command.find('PD:') != -1:
                 pd=PD(command)
@@ -298,12 +322,16 @@ class ProcessData():
                        +'.'+self.departure_flight_date
                        + '-'+str(time_long) + '.xlsx')
 
+
 def main():
     parser = argparse.ArgumentParser(description="PD start")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
-    GetData=GetBriefingJson(r'C:\Users\gostn\我的Github库\PdStar0.2\resources',r'818/818/01JUN/01JUN/IAD')
-    #RequestData(GetData, 0.5,args.debug)
-    GetData.ProcessAndSave()
+    args.debug = True # Not necessary while running in the terminal.
+    request_data=RequestData(r'C:\Users\gostn\my_github\PdStar0.2\resources',
+                             r'818/818/01JUN/01JUN/IAD',
+                             0.5,
+                            args.debug)
+    ProcessData(request_data.Commands)
 if __name__ == "__main__":
     main()

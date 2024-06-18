@@ -1,6 +1,8 @@
-from bins.handle_sy import SY
+from handle_sy import SY
+from keyboard_simulate import SendCommand
+import json
 class GetPD():
-    def __init__(self,PdCommand) -> None:
+    def __init__(self,PdCommand,ResourcesPath) -> None:
         super().__init__()
         self.__pd_command=PdCommand
         self.__sy_command='sy'
@@ -10,4 +12,10 @@ class GetPD():
             asterisk_index=self.__pd_command.find('*')
             core_str=self.__pd_command[space_index:asterisk_index]
             self.__sy_command='sy' + core_str
+        self.__resources=ResourcesPath
+        with open(self.__resources,'r') as file:
+            config=json.load(file)
+        self.__txt_path=config['default_path']
 
+    def PrintCommands(self):
+        pass

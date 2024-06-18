@@ -16,9 +16,13 @@ class SY():
         self.__arrival = str(Arrival)
         self.__sy_content = SyContent
         self.__run()
+        self.Pattern = ''
 
     def __run(self):
-        last_index=self.__get_flight_date()
+        last_index = self.__get_start()
+        if last_index == 0:
+            return
+        last_index = self.__get_flight_date(last_index)
         last_index = self.__get_ac_type(last_index)
         last_index = self.__get_gate(last_index)
         last_index = self.__get_bdt(last_index)
@@ -30,10 +34,24 @@ class SY():
             last_index = self.__get_leg(last_index)
             last_index = self.__get_ret_minus_id(last_index)
 
-    def __get_flight_date(self):
+    def __get_start(self):
+        try:
+            station = 'LAX' if self.__arrival == "" else self.__arrival
+            pattern = r'SY:.*' + station+r'.*'
+            match=re.search(pattern,self.__sy_content)
+            if match:
+                self.Pattern = pattern
+                return match.start()
+            else:
+                return 0
+        except ValueError as e:
+            print("__get_start() has an error.\n",e)
+            return 0
+
+    def __get_flight_date(self, last_index):
         try:
             pattern = r'CA\d{3}/\d{2}[A-Z]{3}\d{2}'
-            match=re.search(pattern,self.__sy_content)
+            match=re.search(pattern,self.__sy_content[last_index:])
             tmp=match.group(0)
             tmp_list=tmp.split('/')
             self.flight=tmp_list[0]
@@ -151,7 +169,7 @@ class SY():
             return 0
         
 
-from bins.functions import ReadTxt2String
+from txt_operation import ReadTxt2String
 def main():
     sy_content=ReadTxt2String(r'C:\Users\gostn\OneDrive\桌面\eterm\sy_transit.txt')
     sy=SY(sy_content,'IAD')
